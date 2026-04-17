@@ -1,36 +1,32 @@
 <!DOCTYPE html>
 <html lang="km">
-
 <head>
     <meta charset="UTF-8">
     <title>PayBakong Secure Checkout</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/all.min.css" rel="stylesheet">
-    <link href="assets/css/checkout.css?v=66.9" rel="stylesheet">
+    <link href="assets/css/checkout.css?v=66.5" rel="stylesheet">
 </head>
-
 <body>
 
-    <div id="checkout-config" 
-         data-khqr="" 
-         data-order-no="" 
-         data-merchant-order-no="" 
-         data-account-name=""
-         data-amount="0.00" 
-         data-remaining-seconds="0" 
-         data-support-link=""
-         data-topup-hint="0"
-         data-bank-name="Bakong"></div>
+<!-- 核心数据配置块 (等待异步数据注入) -->
+<div id="checkout-config" 
+     data-khqr="" 
+     data-order-no="" 
+     data-merchant-order-no=""
+     data-account-name=""
+     data-amount="0.00" 
+     data-remaining-seconds="0"
+     data-bank-name="BAKONG"></div>
 
     <div class="checkout-container position-relative m-0 p-3">
         <div class="payment-card shadow-lg p-0 overflow-hidden">
-            <!-- 顶部三行式辅助区 (1:1 复刻 V26.2) -->
+            <!-- 顶部三行式辅助区 (V26.2) -->
             <div class="header-aux-area p-2 px-3" style="background: #fafafa; border-bottom: 1px solid #f0f0f0;">
                 <!-- Row 1: 提示 + 语言切换 -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <small class="text-danger fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;"
-                        data-i18n="timer_hint">请在规定时间内完成支付</small>
+                    <small class="text-danger fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;" data-i18n="timer_hint">请在规定时间内完成支付</small>
                     <div class="lang-switcher">
                         <span class="lang-btn" onclick="setLanguage('km')" id="lang-km">KM</span>
                         <span class="divider">|</span>
@@ -40,9 +36,8 @@
                     </div>
                 </div>
 
-                <!-- Row 2: 8 银行图标 (静态展示，无切换逻辑) -->
-                <div class="supported-banks-grid-compact mb-2"
-                    style="background: transparent; padding: 0; box-shadow: none;">
+                <!-- Row 2: 8 银行图标 -->
+                <div class="supported-banks-grid-compact mb-2">
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/ABABank.png" alt="ABA"></div>
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/AcledaBank.png" alt="Acleda"></div>
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/WingBank.png" alt="Wing"></div>
@@ -53,47 +48,52 @@
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/TrueMoney.png" alt="TrueMoney"></div>
                 </div>
 
-                <!-- Row 3: 支持说明 -->
+                <!-- Row 3: 支持说明 (V30.0 绿色认证版) -->
                 <div class="supported-banks-footer text-center mt-1">
                     <i class="fa-solid fa-circle-check"></i>
                     <span data-i18n="supported_banks_footer">支持以上所有 KHQR 银行</span>
                 </div>
             </div>
 
-            <!-- 二维码票据区 (1:1 复刻 V29.0) -->
+            <!-- 二维码票据容器 (V29.0) -->
             <div class="qr-ticket-section">
-                <!-- 红色票据 Header -->
+                <!-- 红色票据 Header (V25.0) -->
                 <div class="khqr-header">
                     <img src="assets/img/khqr_icon.svg" alt="KHQR">
                 </div>
 
-                <div class="p-3 pt-1 text-center">
-                    <!-- 票据金额区域 -->
+                <div class="p-3 pt-1">
+                    <!-- 票据金额区域 (V25.0) -->
                     <div class="ticket-amount-wrapper">
-                        <span class="ticket-amount-val" id="render-amt-int">0</span>
-                        <span class="ticket-amount-decimal" id="render-amt-dec">.00</span>
+                        <span class="ticket-amount-val" id="render-amt-int">0.</span><span class="ticket-amount-decimal" id="render-amt-dec">00</span>
                         <span class="ticket-amount-cur">USD</span>
                     </div>
 
                     <div class="ticket-divider"></div>
 
                     <div class="qr-area" id="qr-display-area">
-                        <!-- 扫描窗口包装器 -->
+                        <!-- 扫描窗口包装器 (V26.5) -->
                         <div class="qr-scanner-wrapper">
                             <div class="corner-tl"></div>
                             <div class="corner-tr"></div>
                             <div class="corner-bl"></div>
                             <div class="corner-br"></div>
                             <div class="qr-scan-line"></div>
-                            <div id="qrcode" class="mx-auto"></div>
+                            <div id="qrcode" class="mx-auto d-flex justify-content-center align-items-center" style="min-height: 220px;">
+                                <!-- 脉冲加载动画 (V66.5-LOADING) -->
+                                <div class="qr-loading-pulse">
+                                    <div class="pulse-ring"></div>
+                                    <i class="fa-solid fa-qrcode text-muted opacity-25" style="font-size: 40px;"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 票据底座栏 (1:1 复刻 V28.2) -->
+                <!-- 票据底座栏 (V28.2) -->
                 <div class="qr-bottom-bar" id="qr-footer-bar">
                     <div class="qr-bottom-left">
-                        <!-- 工业级长方形流光倒计时 -->
+                        <!-- 长方形流光倒计时 (V43.0) -->
                         <div class="timer-rect-wrap">
                             <div class="timer-rect-inner">
                                 <span class="qr-bottom-timer" id="timer-text">--:--</span>
@@ -108,11 +108,20 @@
                 </div>
             </div>
 
-            <div class="qr-action-group">
-                <button class="qr-save-btn save-qr-btn" onclick="saveQrCode()" id="save-qr-btn">
+            <div class="qr-action-group">  
+                <button class="qr-save-btn btn w-100 py-2 border-0" onclick="saveQrCode()" id="save-qr-btn">
                     <i class="fa-solid fa-download me-1"></i>
                     <span data-i18n="save_qr">保存二维码到相册</span>
                 </button>
+            </div>
+
+            <!-- 全局预览大图层 (V66.5-PREVIEW) -->
+            <div class="qr-preview-overlay" id="qr-preview-overlay" onclick="closeQrPreview()">
+                <div class="preview-content">
+                    <img src="" id="qr-preview-img" alt="Long press to save">
+                    <p class="preview-hint" data-i18n="save_hint">长按图片保存到相册</p>
+                    <button class="preview-close-btn">&times;</button>
+                </div>
             </div>
 
             <!-- 订单详情卡片 -->
@@ -123,21 +132,23 @@
                         <span data-i18n="merchant_ref">商户单号</span>
                     </span>
                     <div class="detail-content">
-                        <span class="detail-value" id="display-merchant-order-no">--</span>
+                        <span class="detail-value" id="display-merchant-order-no">------</span>
                     </div>
                 </div>
             </div>
 
-            <!-- 全语言安全提醒 -->
-            <div class="pay-warning-container" id="pay-warning-global">
+            <!-- 全语言安全提醒 (V34.0) -->
+            <div class="pay-warning-container d-none" id="pay-warning-global">
                 <ol class="mb-0">
                     <li data-i18n="warn_1">If this is not your order, please do not pay.</li>
                     <li data-i18n="warn_2">Do not save this account number. Recipient details may change.</li>
                     <li data-i18n="warn_3">Pay exactly as shown for auto-credit.</li>
                 </ol>
             </div>
-        </div>
 
+        </div><!-- .payment-card END -->
+
+        <!-- 支付等待状态 -->
         <div id="status-container">
             <div class="text-center mt-1">
                 <div class="status-indicator">
@@ -147,27 +158,25 @@
             </div>
         </div>
 
-        <!-- 侧边面板：移至此处，并增加容器定位约束 [V27.3 复刻] -->
+        <!-- 侧边交互面板 -->
         <div class="side-panel-container">
-            <!-- 左侧：联系客服 (入口动态绑定) -->
             <div class="side-panel-wrapper left" id="contact-panel" style="display: none;">
-                <div class="side-tab" id="btn-contact-us">
+                <div class="side-tab" id="contact-us-btn">
                     <span class="tab-text" data-i18n="contact_us">联系我们</span>
                     <i class="fa-solid fa-headset tab-icon"></i>
                 </div>
             </div>
 
-            <!-- 右侧：帮助指引 (侧边黄色侧标) [默认隐藏，由 JS 根据后端开关控制] -->
             <div class="side-panel-wrapper right" id="help-panel-tab" style="display: none;">
                 <div class="side-tab" onclick="togglePanel('help-panel')">
                     <i class="fa-solid fa-circle-question tab-icon"></i>
                     <span class="tab-text" data-i18n="help_guide">帮助指引</span>
                 </div>
             </div>
-
-            <!-- 帮助抽屉独立渲染 -->
+            
+            <!-- 帮助抽屉面板 -->
             <div class="side-drawer help-drawer" id="help-panel" onclick="togglePanel('help-panel')">
-                <div class="drawer-header orange-theme">
+                <div class="drawer-header">
                     <div class="header-icon-box"><i class="fa-solid fa-circle-question"></i></div>
                     <div class="header-text">
                         <div class="main-title" data-i18n="help">充值说明</div>
@@ -175,49 +184,19 @@
                     </div>
                 </div>
                 <div class="drawer-content p-0">
-                    <!-- 路径匹配本地库 -->
                     <img src="assets/img/topup_hint_en.jpg" class="img-fluid help-img" alt="Help">
                 </div>
             </div>
         </div>
+
     </div>
 
-    <!-- 遮罩层 (保持在全局以覆盖整个视口) -->
-    <div class="side-panel-overlay" id="panel-overlay" onclick="closeAllPanels()"></div>
+<!-- 全局遮罩层 -->
+<div class="side-panel-overlay" id="panel-overlay" onclick="closeAllPanels()"></div>
 
-    <!-- 成功状态遮罩 (1:1 复刻逻辑) -->
-    <div id="mask-success" class="mask-overlay"
-        style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-        <i class="fa-solid fa-circle-check text-success" style="font-size: 80px; margin-bottom: 20px;"></i>
-        <h2 class="fw-bold mb-2" data-i18n="pay_success">Payment Success!</h2>
-        <p class="text-muted" id="success-hint">Closing...</p>
-    </div>
-
-    <!-- 超时过期遮罩 (1:1 风格对齐) -->
-    <div id="mask-expiry" class="mask-overlay"
-        style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-        <i class="fa-solid fa-clock-rotate-left" style="font-size: 80px; color: #eaaeb4; margin-bottom: 20px;"></i>
-        <h2 class="fw-bold mb-3" style="color: #e33e49;" data-i18n="order_expired">Order Expired!</h2>
-        <p class="text-muted mb-4" style="line-height: 1.6; max-width: 280px;">Payment time has expired, please restart
-            the payment.</p>
-        <button class="btn btn-primary px-5 rounded-pill shadow-sm" style="background-color: #1a73e8; border: none;"
-            onclick="window.location.reload()" data-i18n="retry_btn">Retry</button>
-    </div>
-
-    <!-- 错误/拒绝访问遮罩 [NEW] (同步本地 die() 视觉) -->
-    <div id="mask-error" class="mask-overlay"
-        style="display:none; position:fixed; inset:0; background:#fff; z-index:10001; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px;">
-        <i class="fa-solid fa-circle-exclamation text-secondary mb-4" style="font-size: 80px; opacity: 0.5;"></i>
-        <h2 class="fw-bold mb-3" id="error-title">Access Denied</h2>
-        <p class="text-muted mb-4" id="error-desc" style="max-width: 320px;">Invalid or missing security token.</p>
-    </div>
-
-    <!-- 基础脚本 -->
-    <script src="assets/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script>window.API_BASE = 'https://khbak.gu1688.com/';</script>
-    <script src="assets/js/checkout.js?v=68.2"></script>
+<script src="assets/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="assets/js/checkout.js?v=66.5"></script>
 </body>
-
 </html>
