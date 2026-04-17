@@ -275,6 +275,16 @@ window.initPage = async function () {
                 contactPanel.style.display = 'flex';
                 contactBtn.onclick = () => safeOpen(data.support_link);
             }
+        } else {
+            // [FIX] 本地逻辑：链接为空则显式隐藏 (V65.6)
+            const contactPanel = document.getElementById('contact-panel');
+            if (contactPanel) contactPanel.style.display = 'none';
+        }
+
+        // [FIX] 根据后端配置同步“帮助指引”标签的显示状态
+        const helpTab = document.getElementById('help-panel-tab');
+        if (helpTab) {
+            helpTab.style.display = (Number(data.topup_hint) === 1) ? 'flex' : 'none';
         }
 
         let remain = 0;
