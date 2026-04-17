@@ -289,7 +289,7 @@ body {
     border: none;
     width: 100%;
     max-width: 180px;
-    /* [FIX] 进一步缩短按钮，使其更紧凑 */
+    /* [FIX] 锁定为用户选择的 180px 紧凑宽度 */
     margin: 0 auto;
     /* 居中 */
     padding: 12px;
