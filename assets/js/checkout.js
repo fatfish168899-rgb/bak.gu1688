@@ -1,31 +1,34 @@
 /**
- * PayBank Final Industrial JS (CF Optimized)
- * Version: 60.0 (Elite Core)
+ * PayBank 1:1 Local Mirror JS (CF Optimized)
+ * Version: 60.1 (Mirror Edition)
  */
 
 const I18N = {
     km: {
-        timer_hint: "សូមបង់ប្រាក់ក្នុងកំឡុងពេលកំណត់",
-        instruction: "ស្កេនកូដបង់ប្រាក់ ឬចម្លងគណនីផ្ទេរប្រាក់",
+        timer_hint: "សូមបង់ប្រាក់ក្នុងកំឡុងពេលនេះ ប្រព័ន្ធនឹងទូទាត់ដោយស្វ័យប្រវត្ត",
         amount_label: "ចំនួនទឹកប្រាក់ត្រូវបង់",
-        amount_warning: "សូមផ្ទេរឱ្យគ្រប់ចំនួនដើម្បីទទួលបានការទូទាត់ស្វ័យប្រវត្ត",
+        amount_warning: "សូមប្រាកដថាចំនួនទឹកប្រាក់ផ្ទេរដូចគ្នានឹងចំនួនត្រូវបង់ ប្រព័ន្ធនឹងទូទាត់ដោយស្វ័យប្រវត្ត",
         receiver_label: "អ្នកទទួល",
         card_label: "គណនីទទួល",
         bank_label_row: "ធនាគារទទួល",
         order_no_label: "លេខបញ្ជាទិញ",
         copy: "ចម្លង",
-        waiting_pay: "កំពុងរង់ចាំ...",
+        waiting_pay: "កំពុងរង់ចាំការបង់ប្រាក់...",
         copied: "បានចម្លង!",
-        pay_success: "បង់ប្រាក់ជោគជ័យ!",
+        pay_success: "ការបង់ប្រាក់បានជោគជ័យ!",
         save_qr: "រក្សាទុក QR",
         assigning: "កំពុងបែងចែក...",
-        order_expired: "ការបញ្ជាទិញបានហួសពេល!",
+        order_expired: "ពេលវេលាបង់ប្រាក់ផុតកំណត់!",
+        order_expired_desc: "ពេលវេលាបង់ប្រាក់បានផុតកំណត់ សូមចាប់ផ្តើមម្តងទៀត។<br>កូដ QR បច្ចុប្បន្នមិនមានសុពលភាពទេ។",
         retry_btn: "ព្យាយាមម្តងទៀត",
-        auto_close: "ទំព័រនឹងបិទក្នុងរយៈពេល {{sec}} វិនាទី..."
+        supported_banks_footer: "គាំទ្រគ្រប់ភ្នាក់ងារធនាគារ KHQR ខាងលើ",
+        merchant_ref: "លេខយោងអាជីវករ",
+        warn_1: "ប្រសិនបើនេះមិនមែនជាការបញ្ជាទិញរបស់អ្នកទេ សូមកុំបង់ប្រាក់",
+        warn_2: "ជូនដំណឹងម្ដងទៀត សូមកុំកត់ត្រាលេខគណនី ពីព្រោះវាអាចផ្លាស់ប្តូរបានជានិច្ច",
+        warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ"
     },
     en: {
-        timer_hint: "Please complete payment in time",
-        instruction: "Scan QR code or copy account manually",
+        timer_hint: "Please pay within this time, system will auto-credit",
         amount_label: "Total Amount Due",
         amount_warning: "Ensure transfer amount matches due amount for auto-credit",
         receiver_label: "Receiver",
@@ -33,18 +36,22 @@ const I18N = {
         bank_label_row: "Receiving Bank",
         order_no_label: "Order No",
         copy: "Copy",
-        waiting_pay: "Waiting...",
+        waiting_pay: "Waiting for payment...",
         copied: "Copied!",
         pay_success: "Payment Success!",
-        save_qr: "Save QR to Album",
+        save_qr: "Save QR",
         assigning: "Assigning account...",
         order_expired: "Order Expired!",
+        order_expired_desc: "Payment time has expired, please restart the payment.<br>The current QR code is invalid.",
         retry_btn: "Retry",
-        auto_close: "Page will refresh in {{sec}} seconds..."
+        supported_banks_footer: "Supports all the above KHQR banks",
+        merchant_ref: "Merchant Ref",
+        warn_1: "If this is not your order, please do not pay.",
+        warn_2: "Do not save this account number. Details may change.",
+        warn_3: "Pay exactly as shown for auto-credit."
     },
     zh: {
         timer_hint: "请在规定时间内完成支付",
-        instruction: "您可扫码支付，或复制账号手动转账",
         amount_label: "应付总额",
         amount_warning: "请确保转账金额一致，否则将无法自动到账",
         receiver_label: "收款姓名",
@@ -57,9 +64,14 @@ const I18N = {
         pay_success: "支付成功!",
         save_qr: "保存二维码到相册",
         assigning: "正在为您分配收款账号...",
-        order_expired: "订单已超时!",
-        retry_btn: "刷新重试",
-        auto_close: "页面将在 {{sec}} 秒内自动刷新..."
+        order_expired: "订单已过期!",
+        order_expired_desc: "支付时间已过期，请重新发起支付。<br>当前二维码已失效。",
+        retry_btn: "重试",
+        supported_banks_footer: "支持以上所有 KHQR 银行",
+        merchant_ref: "商户单号",
+        warn_1: "如果这不是您的订单，请勿支付。",
+        warn_2: "请勿记录此收款账号，账号会不定期更换。",
+        warn_3: "请及时支付且仅支付显示的准确金额。"
     }
 };
 
@@ -75,6 +87,7 @@ function getDetectLanguage() {
 let currentLang = getDetectLanguage();
 const urlParams = new URLSearchParams(window.location.search);
 const currentToken = urlParams.get('token') || '';
+let statusPoller = null; // 全局轮询跟踪器
 
 window.setLanguage = function (lang) {
     currentLang = lang;
@@ -95,8 +108,8 @@ function updateInterface() {
     });
 }
 
-// 核心：锁定 Bakong Logo 路由
-const UNIFIED_LOGO_PATH = "assets/img/bank_logo/bakong_logo.png";
+// 统一 Logo 路径
+const LOGO_PATH = "assets/img/bank_logo/bakong_logo.png";
 
 window.renderQrCode = function (qrData) {
     const qrContainer = document.getElementById("qrcode");
@@ -127,7 +140,7 @@ window.renderQrCode = function (qrData) {
         ctx.drawImage(source, 20, 20, 180, 180);
 
         const logo = new Image();
-        logo.src = UNIFIED_LOGO_PATH;
+        logo.src = LOGO_PATH;
         logo.onload = () => {
             const lSize = 42, p = 3;
             const lx = (220 - lSize) / 2, ly = (220 - lSize) / 2;
@@ -164,42 +177,17 @@ window.saveQrCode = function () {
     document.body.removeChild(link);
 };
 
-window.switchBank = async function (bankName) {
-    const ono = document.getElementById('checkout-config').dataset.orderNo;
-    const box = document.getElementById('qr-container-box');
-    box.style.opacity = '0.3';
-
-    try {
-        const res = await fetch(`${window.API_BASE}api/switch_bank.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_no: ono, bank_name: bankName, token: currentToken })
-        });
-        const json = await res.json();
-        if (json.code === 200) {
-            applyPaymentData(json.data);
-            // 更新活跃态
-            document.querySelectorAll('.bank-item').forEach(el => el.classList.remove('active'));
-            const activeItem = Array.from(document.querySelectorAll('.bank-item')).find(el => el.innerHTML.includes(bankName));
-            if (activeItem) activeItem.classList.add('active');
-        }
-    } catch (e) { console.error(e); }
-    finally { box.style.opacity = '1'; }
-};
-
+// 1:1 数据应用逻辑
 function applyPaymentData(data) {
-    // 金额动态切分 (Big-Int, Small-Dec)
-    const amt = parseFloat(data.real_amount).toFixed(2);
-    const parts = amt.split('.');
+    // 金额分拆 (1:1 格式化)
+    const val = parseFloat(data.real_amount).toFixed(2);
+    const parts = val.split('.');
     document.getElementById('render-amt-int').textContent = parts[0];
     document.getElementById('render-amt-dec').textContent = '.' + parts[1];
 
-    // 详情卡片
-    document.getElementById('val-recv').textContent = data.account_name || '--';
-    document.getElementById('render-merchant-name').textContent = data.account_name || '--';
-    document.getElementById('val-card').textContent = data.account_no || data.card_no;
-    document.getElementById('val-bank').textContent = (data.bank_name || 'Bakong') + ' Bank';
-    document.getElementById('val-order').textContent = data.order_no;
+    // 其他信息对齐
+    document.getElementById('display-account-name').textContent = data.account_name || '--';
+    document.getElementById('display-merchant-order-no').textContent = data.out_order_no || data.order_no;
 
     window.renderQrCode(data.khqr_string || data.qr_data);
 }
@@ -214,46 +202,54 @@ window.initPage = async function () {
         const json = await res.json();
         if (json.code !== 200) return;
 
-        document.getElementById('page-loading').style.display = 'none';
-        document.querySelector('.checkout-container').style.opacity = '1';
-
         const data = json.data;
         document.getElementById('checkout-config').dataset.orderNo = data.order_no;
-        document.getElementById('render-merchant-ref').textContent = data.out_order_no || 'N/A';
-
-        applyPaymentData(data);
-        startPolling(ono);
-
-        // 倒计时核心逻辑
+        
+        // 倒计时核心计算 (V65.1：首屏拦截逻辑)
         let remain = 0;
         if (data.expire_at && data.server_time) {
             const exp = new Date(data.expire_at.replace(/-/g, '/')).getTime();
             const srv = new Date(data.server_time.replace(/-/g, '/')).getTime();
             remain = Math.max(0, Math.floor((exp - srv) / 1000));
         }
-        if (remain > 0) startCountdown(remain);
-        else showExpiryMask();
+
+        if (remain > 0) {
+            applyPaymentData(data);
+            startPolling(ono);
+            startCountdown(remain);
+        } else {
+            // 已超时：直接跳过渲染，弹出遮罩
+            showExpiryMask();
+        }
 
     } catch (e) { console.error(e); }
 };
 
 function startPolling(ono) {
-    setInterval(async () => {
+    if (statusPoller) clearInterval(statusPoller);
+    statusPoller = setInterval(async () => {
         try {
             const res = await fetch(`${window.API_BASE}api/check_order.php?order_no=${ono}&token=${currentToken}`);
             const json = await res.json();
-            if (json.status === 'paid') showSuccessMask();
+            if (json.status === 'paid') {
+                clearInterval(statusPoller);
+                showSuccessMask();
+            }
         } catch (e) {}
     }, 4000);
 }
 
 function startCountdown(sec) {
-    const timerEl = document.getElementById('render-timer');
+    const timerEl = document.getElementById('timer-text');
     const tick = () => {
         const m = Math.floor(sec / 60);
         const s = sec % 60;
-        timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        if (sec <= 0) { showExpiryMask(); return; }
+        if (timerEl) timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        
+        if (sec <= 0) { 
+            showExpiryMask(); 
+            return; 
+        }
         sec--;
         timerEl._timerTimeout = setTimeout(tick, 1000);
     };
@@ -261,23 +257,34 @@ function startCountdown(sec) {
 }
 
 function showSuccessMask() {
-    document.getElementById('mask-success').style.display = 'flex';
+    if (statusPoller) clearInterval(statusPoller);
+    const mask = document.getElementById('mask-success');
+    if (mask) mask.style.display = 'flex';
     setTimeout(() => window.location.reload(), 3000);
 }
 
 function showExpiryMask() {
-    document.getElementById('mask-expiry').style.display = 'flex';
+    // 1. 彻底停止所有后台活动 (V65.0)
+    if (statusPoller) clearInterval(statusPoller);
+    
+    // 2. 显示专门的过期遮罩
+    const mask = document.getElementById('mask-expiry');
+    if (mask) {
+        // 同步 1:1 过期描述文案
+        const descEl = mask.querySelector('p');
+        if (descEl && I18N[currentLang].order_expired_desc) {
+            descEl.innerHTML = I18N[currentLang].order_expired_desc;
+        }
+        mask.style.display = 'flex';
+    } else {
+        // 退而求其次显示成功遮罩并修改文案
+        const successMask = document.getElementById('mask-success');
+        if (successMask) {
+            successMask.style.display = 'flex';
+            successMask.querySelector('h2').innerText = I18N[currentLang].order_expired;
+        }
+    }
 }
-
-window.copyText = function (id, btn) {
-    const text = document.getElementById(id).textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        const old = btn.innerText;
-        btn.innerText = I18N[currentLang].copied;
-        btn.style.backgroundColor = "#198754"; btn.style.color = "#fff";
-        setTimeout(() => { btn.innerText = old; btn.style.backgroundColor = ""; btn.style.color = ""; }, 1000);
-    });
-};
 
 document.addEventListener('DOMContentLoaded', () => {
     updateInterface();
