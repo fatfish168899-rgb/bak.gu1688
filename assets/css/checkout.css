@@ -805,6 +805,14 @@ body.panel-open .side-tab {
     animation: qrScanMove 2.5s ease-in-out infinite;
 }
 
+/* [V65.8] 截屏保存模式：隐藏扫描线及动态干扰 */
+.is-capturing .qr-scan-line {
+    display: none !important;
+}
+.is-capturing .qr-scanner-wrapper {
+    box-shadow: none !important;
+}
+
 @keyframes qrScanMove {
 
     0%,
