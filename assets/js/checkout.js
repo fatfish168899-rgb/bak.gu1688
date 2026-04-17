@@ -416,6 +416,10 @@ window.closeAllPanels = function () {
  * 核心功能：数据渲染与注入 [V1.2.1-STATIC-SMART]
  */
 function renderOrderData(data) {
+    // 成功进入渲染流程，第一时间亮灯 [V66.5-READY]
+    const container = document.querySelector('.checkout-container');
+    if (container) container.style.display = 'block';
+
     const configEl = document.getElementById('checkout-config');
     if (!configEl) return;
 
@@ -518,6 +522,8 @@ async function loadOrderData() {
     // 2) 静态模式：如果 HTML 没数据，尝试从接口抓取
     if (!currentOrderNo || !currentToken) {
         console.warn("Static Mode: Missing order_no or token in URL.");
+        const container = document.querySelector('.checkout-container');
+        if (container) container.style.display = 'none';
         return;
     }
 
@@ -536,11 +542,20 @@ async function loadOrderData() {
             }
             renderOrderData(d);
             startPolling();
+        } else if (json.code === 400) {
+            // 订单已失效情况：允许显示容器并触发失效提示 [V66.5-EXP-FIX]
+            const container = document.querySelector('.checkout-container');
+            if (container) container.style.display = 'block';
+            handleExpired();
         } else {
             console.error("Fetch order failed:", json.msg);
+            const container = document.querySelector('.checkout-container');
+            if (container) container.style.display = 'none';
         }
     } catch (e) {
         console.error("Initialization error:", e);
+        const container = document.querySelector('.checkout-container');
+        if (container) container.style.display = 'none';
     }
 }
 
@@ -591,12 +606,18 @@ function handleSuccess(retUrl) {
  */
 function handleExpired() {
     isExpired = true; // 锁定失效状态
+    
+    // 既然进入了业务失效流程，说明地址是对的，亮灯 [V66.5-READY]
+    const container = document.querySelector('.checkout-container');
+    if (container) container.style.display = 'block';
+
     if (activeTimerInterval) clearInterval(activeTimerInterval);
     updateTimerVisuals(0);
 
     const qrArea = document.getElementById('qr-display-area');
     const qrFooter = document.getElementById('qr-footer-bar');
     const actionGroup = document.querySelector('.qr-action-group');
+    const paymentInfo = document.getElementById('payment-info-area');
 
     if (qrArea) {
         qrArea.classList.remove('d-none');
