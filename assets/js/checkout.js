@@ -221,29 +221,51 @@ window.saveQrCode = async function () {
 
     // 获取商户订单号作为文件名
     const orderNo = (document.getElementById('display-merchant-order-no')?.innerText || 'KHQR').trim();
+    
+    // 简易移动端检测
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
     try {
-        // [V65.8] 进入截图模式：隐藏扫描线逻辑
+        // [V66.2] 截图预处理
         ticketEl.classList.add("is-capturing");
 
-        // 使用 html2canvas 截取整张票据
         const canvas = await html2canvas(ticketEl, {
-            scale: 2,           // 高清采样
-            useCORS: true,      // 允许跨域图片渲染
+            scale: 2,           
+            useCORS: true,      
             backgroundColor: "#ffffff",
             logging: false
         });
 
-        // 截图结束恢复状态
         ticketEl.classList.remove("is-capturing");
 
         const dataUrl = canvas.toDataURL("image/png");
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `${orderNo}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+        // 针对 iOS 和部分移动端 WebView 的兼容处理
+        if (isIOS) {
+            // iOS 往往拦截下载，改为在新窗口打开图片，引导用户长按保存
+            // 备注：如果 window.open 被拦截，浏览器通常会有提示或回退到当前窗口
+            try {
+                const newWin = window.open('about:blank');
+                if (newWin) {
+                    newWin.document.write(`<title>${orderNo}</title><body style="margin:0;padding:20px;background:#f4f7fe;display:flex;justify-content:center;"><img src="${dataUrl}" style="max-width:100%; height:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.1);"></body>`);
+                    newWin.focus();
+                } else {
+                    window.location.href = dataUrl;
+                }
+            } catch (e) {
+                window.location.href = dataUrl;
+            }
+        } else {
+            // 安卓和 PC 端直接尝试触发下载
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `${orderNo}.png`;
+            if (isMobile) link.target = "_blank"; // 部分移动端需要新开页触发
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     } catch (err) {
         console.error("Capture failed", err);
         ticketEl.classList.remove("is-capturing");
