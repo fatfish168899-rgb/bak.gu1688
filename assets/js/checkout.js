@@ -1,7 +1,6 @@
-/**
- * PayBank 1:1 Local Mirror JS (CF Optimized)
- * Version: 60.1 (Mirror Edition)
- */
+/* PayBank 1:1 Local Mirror JS (CF Optimized)
+* Version: 65.0 (Mirror Edition)
+*/
 
 const I18N = {
     km: {
@@ -25,7 +24,9 @@ const I18N = {
         merchant_ref: "លេខយោងអាជីវករ",
         warn_1: "ប្រសិនបើនេះមិនមែនជាការបញ្ជាទិញរបស់អ្នកទេ សូមកុំបង់ប្រាក់",
         warn_2: "ជូនដំណឹងម្ដងទៀត សូមកុំកត់ត្រាលេខគណនី ពីព្រោះវាអាចផ្លាស់ប្តូរបានជានិច្ច",
-        warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ"
+        warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ",
+        redirect_hint: "ទំព័រនឹងលោតទៅកាន់គេហទំព័រដើមវិញក្នុងរយៈពេល {{sec}} វិនាទី...",
+        close_hint: "ទំព័រនឹងបិទដោយស្វ័យប្រវត្តក្នុងរយៈពេល {{sec}} វិនាទី..."
     },
     en: {
         timer_hint: "Please pay within this time, system will auto-credit",
@@ -48,7 +49,9 @@ const I18N = {
         merchant_ref: "Merchant Ref",
         warn_1: "If this is not your order, please do not pay.",
         warn_2: "Do not save this account number. Details may change.",
-        warn_3: "Pay exactly as shown for auto-credit."
+        warn_3: "Pay exactly as shown for auto-credit.",
+        redirect_hint: "Redirecting to merchant in {{sec}} seconds...",
+        close_hint: "Page will close automatically in {{sec}} seconds..."
     },
     zh: {
         timer_hint: "请在规定时间内完成支付",
@@ -71,7 +74,9 @@ const I18N = {
         merchant_ref: "商户单号",
         warn_1: "如果这不是您的订单，请勿支付。",
         warn_2: "请勿记录此收款账号，账号会不定期更换。",
-        warn_3: "请及时支付且仅支付显示的准确金额。"
+        warn_3: "请及时支付且仅支付显示的准确金额。",
+        redirect_hint: "页面将在 {{sec}} 秒内自动跳转...",
+        close_hint: "页面将在 {{sec}} 秒内自动关闭..."
     }
 };
 
@@ -88,6 +93,7 @@ let currentLang = getDetectLanguage();
 const urlParams = new URLSearchParams(window.location.search);
 const currentToken = urlParams.get('token') || '';
 let statusPoller = null; // 全局轮询跟踪器
+let redirectUrl = ''; // [NEW] 全局跳转地址同步
 
 window.setLanguage = function (lang) {
     currentLang = lang;
@@ -200,11 +206,17 @@ window.initPage = async function () {
     try {
         const res = await fetch(`${window.API_BASE}api/get_order_details.php?order_no=${ono}&token=${currentToken}`);
         const json = await res.json();
-        if (json.code !== 200) return;
+
+        // [FIX] 增强拦截：参数错误或订单不存在 (同步本地 die() 逻辑)
+        if (json.code !== 200) {
+            showErrorMask(json.msg || 'Access Denied', 'Invalid or missing security token.');
+            return;
+        }
 
         const data = json.data;
         document.getElementById('checkout-config').dataset.orderNo = data.order_no;
-        
+        redirectUrl = data.return_url || ''; // 同步初始回传地址
+
         // 倒计时核心计算 (V65.1：首屏拦截逻辑)
         let remain = 0;
         if (data.expire_at && data.server_time) {
@@ -217,25 +229,30 @@ window.initPage = async function () {
             applyPaymentData(data);
             startPolling(ono);
             startCountdown(remain);
+            // [FIX] 数据准备就绪后，渐显界面
+            document.querySelector('.checkout-container').style.opacity = '1';
         } else {
-            // 已超时：直接跳过渲染，弹出遮罩
+            // 已超时：直接拦截渲染，弹出遮罩
             showExpiryMask();
         }
 
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+        showErrorMask('System Error', 'Unable to load payment details.');
+    }
 };
 
 function startPolling(ono) {
-    if (statusPoller) clearInterval(statusPoller);
     statusPoller = setInterval(async () => {
         try {
             const res = await fetch(`${window.API_BASE}api/check_order.php?order_no=${ono}&token=${currentToken}`);
             const json = await res.json();
             if (json.status === 'paid') {
+                if (json.return_url) redirectUrl = json.return_url; // 轮询中同步最新地址
                 clearInterval(statusPoller);
                 showSuccessMask();
             }
-        } catch (e) {}
+        } catch (e) { }
     }, 4000);
 }
 
@@ -245,10 +262,10 @@ function startCountdown(sec) {
         const m = Math.floor(sec / 60);
         const s = sec % 60;
         if (timerEl) timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        
-        if (sec <= 0) { 
-            showExpiryMask(); 
-            return; 
+
+        if (sec <= 0) {
+            showExpiryMask();
+            return;
         }
         sec--;
         timerEl._timerTimeout = setTimeout(tick, 1000);
@@ -259,14 +276,65 @@ function startCountdown(sec) {
 function showSuccessMask() {
     if (statusPoller) clearInterval(statusPoller);
     const mask = document.getElementById('mask-success');
-    if (mask) mask.style.display = 'flex';
-    setTimeout(() => window.location.reload(), 3000);
+    if (!mask) return;
+
+    mask.style.display = 'flex';
+
+    // [FIX] 1:1 倒计时跳转逻辑
+    let sec = 3;
+    const hintEl = document.getElementById('success-hint');
+    const update = () => {
+        const textKey = redirectUrl ? 'redirect_hint' : 'close_hint';
+        if (hintEl && I18N[currentLang][textKey]) {
+            hintEl.innerText = I18N[currentLang][textKey].replace('{{sec}}', sec);
+        }
+    };
+
+    update();
+    const timer = setInterval(() => {
+        sec--;
+        if (sec <= 0) {
+            clearInterval(timer);
+            handleRedirection();
+        } else {
+            update();
+        }
+    }, 1000);
+}
+
+// [FIX] 处理最终跳转或关闭
+function handleRedirection() {
+    if (redirectUrl && redirectUrl.length > 5) {
+        window.location.replace(redirectUrl);
+    } else {
+        // [FIX] 针对移动端环境的多种尝试
+        if (typeof WeixinJSBridge !== 'undefined') { WeixinJSBridge.call('closeWindow'); }
+        else if (typeof AlipayJSBridge !== 'undefined') { AlipayJSBridge.call('closeWebview'); }
+        else {
+            window.close();
+            // 兜底：如果浏览器拦截了关闭，则跳转到空白页
+            setTimeout(() => { window.location.href = 'about:blank'; }, 500);
+        }
+    }
+}
+
+// [NEW] 处理报错显示 (同步本地 die())
+function showErrorMask(title, desc) {
+    if (statusPoller) clearInterval(statusPoller);
+    const mask = document.getElementById('mask-error');
+    if (mask) {
+        document.getElementById('error-title').innerText = title;
+        document.getElementById('error-desc').innerText = desc;
+        mask.style.display = 'flex';
+        // 确保容器可见以显示遮罩
+        document.querySelector('.checkout-container').style.opacity = '1';
+    }
 }
 
 function showExpiryMask() {
     // 1. 彻底停止所有后台活动 (V65.0)
     if (statusPoller) clearInterval(statusPoller);
-    
+
     // 2. 显示专门的过期遮罩
     const mask = document.getElementById('mask-expiry');
     if (mask) {
@@ -276,6 +344,8 @@ function showExpiryMask() {
             descEl.innerHTML = I18N[currentLang].order_expired_desc;
         }
         mask.style.display = 'flex';
+        // 确保容器可见以显示遮罩
+        document.querySelector('.checkout-container').style.opacity = '1';
     } else {
         // 退而求其次显示成功遮罩并修改文案
         const successMask = document.getElementById('mask-success');
