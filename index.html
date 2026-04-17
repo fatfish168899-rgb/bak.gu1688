@@ -1,23 +1,20 @@
 <!DOCTYPE html>
 <html lang="km">
+
 <head>
     <meta charset="UTF-8">
     <title>PayBakong Secure Checkout</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/all.min.css" rel="stylesheet">
-    <link href="assets/css/checkout.css?v=66.3" rel="stylesheet">
+    <link href="assets/css/checkout.css?v=66.4" rel="stylesheet">
+    <link href="assets/css/screenshot.css?v=66.4" rel="stylesheet">
 </head>
+
 <body>
 
-<div id="checkout-config" 
-     data-khqr="" 
-     data-order-no="" 
-     data-merchant-order-no=""
-     data-account-name=""
-     data-amount="0.00" 
-     data-remaining-seconds="0"
-     data-bank-name="Bakong"></div>
+    <div id="checkout-config" data-khqr="" data-order-no="" data-merchant-order-no="" data-account-name=""
+        data-amount="0.00" data-remaining-seconds="0" data-bank-name="Bakong"></div>
 
     <div class="checkout-container position-relative m-0 p-3">
         <div class="payment-card shadow-lg p-0 overflow-hidden">
@@ -25,7 +22,8 @@
             <div class="header-aux-area p-2 px-3" style="background: #fafafa; border-bottom: 1px solid #f0f0f0;">
                 <!-- Row 1: 提示 + 语言切换 -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <small class="text-danger fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;" data-i18n="timer_hint">请在规定时间内完成支付</small>
+                    <small class="text-danger fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;"
+                        data-i18n="timer_hint">请在规定时间内完成支付</small>
                     <div class="lang-switcher">
                         <span class="lang-btn" onclick="setLanguage('km')" id="lang-km">KM</span>
                         <span class="divider">|</span>
@@ -36,7 +34,8 @@
                 </div>
 
                 <!-- Row 2: 8 银行图标 (静态展示，无切换逻辑) -->
-                <div class="supported-banks-grid-compact mb-2" style="background: transparent; padding: 0; box-shadow: none;">
+                <div class="supported-banks-grid-compact mb-2"
+                    style="background: transparent; padding: 0; box-shadow: none;">
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/ABABank.png" alt="ABA"></div>
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/AcledaBank.png" alt="Acleda"></div>
                     <div class="bank-grid-item-mini"><img src="assets/img/allbank/WingBank.png" alt="Wing"></div>
@@ -102,7 +101,7 @@
                 </div>
             </div>
 
-            <div class="qr-action-group">  
+            <div class="qr-action-group">
                 <button class="qr-save-btn save-qr-btn" onclick="saveQrCode()" id="save-qr-btn">
                     <i class="fa-solid fa-download me-1"></i>
                     <span data-i18n="save_qr">保存二维码到相册</span>
@@ -158,7 +157,7 @@
                     <span class="tab-text" data-i18n="help_guide">帮助指引</span>
                 </div>
             </div>
-            
+
             <!-- 帮助抽屉独立渲染 -->
             <div class="side-drawer help-drawer" id="help-panel" onclick="togglePanel('help-panel')">
                 <div class="drawer-header orange-theme">
@@ -180,22 +179,27 @@
     <div class="side-panel-overlay" id="panel-overlay" onclick="closeAllPanels()"></div>
 
     <!-- 成功状态遮罩 (1:1 复刻逻辑) -->
-    <div id="mask-success" class="mask-overlay" style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+    <div id="mask-success" class="mask-overlay"
+        style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
         <i class="fa-solid fa-circle-check text-success" style="font-size: 80px; margin-bottom: 20px;"></i>
         <h2 class="fw-bold mb-2" data-i18n="pay_success">Payment Success!</h2>
         <p class="text-muted" id="success-hint">Closing...</p>
     </div>
 
     <!-- 超时过期遮罩 (1:1 风格对齐) -->
-    <div id="mask-expiry" class="mask-overlay" style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+    <div id="mask-expiry" class="mask-overlay"
+        style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
         <i class="fa-solid fa-clock-rotate-left" style="font-size: 80px; color: #eaaeb4; margin-bottom: 20px;"></i>
         <h2 class="fw-bold mb-3" style="color: #e33e49;" data-i18n="order_expired">Order Expired!</h2>
-        <p class="text-muted mb-4" style="line-height: 1.6; max-width: 280px;">Payment time has expired, please restart the payment.</p>
-        <button class="btn btn-primary px-5 rounded-pill shadow-sm" style="background-color: #1a73e8; border: none;" onclick="window.location.reload()" data-i18n="retry_btn">Retry</button>
+        <p class="text-muted mb-4" style="line-height: 1.6; max-width: 280px;">Payment time has expired, please restart
+            the payment.</p>
+        <button class="btn btn-primary px-5 rounded-pill shadow-sm" style="background-color: #1a73e8; border: none;"
+            onclick="window.location.reload()" data-i18n="retry_btn">Retry</button>
     </div>
 
     <!-- 错误/拒绝访问遮罩 [NEW] (同步本地 die() 视觉) -->
-    <div id="mask-error" class="mask-overlay" style="display:none; position:fixed; inset:0; background:#fff; z-index:10001; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px;">
+    <div id="mask-error" class="mask-overlay"
+        style="display:none; position:fixed; inset:0; background:#fff; z-index:10001; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px;">
         <i class="fa-solid fa-circle-exclamation text-secondary mb-4" style="font-size: 80px; opacity: 0.5;"></i>
         <h2 class="fw-bold mb-3" id="error-title">Access Denied</h2>
         <p class="text-muted mb-4" id="error-desc" style="max-width: 320px;">Invalid or missing security token.</p>
@@ -206,6 +210,7 @@
     <script src="assets/js/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>window.API_BASE = 'https://khbak.gu1688.com/';</script>
-    <script src="assets/js/checkout.js?v=66.2"></script>
+    <script src="assets/js/checkout.js?v=66.5"></script>
 </body>
+
 </html>
