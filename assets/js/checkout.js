@@ -1,27 +1,27 @@
 /**
- * PayBank Industrial Checkout Logic
- * Version: 52.0 (Purified for CF)
+ * PayBank Final Industrial JS (CF Optimized)
+ * Version: 60.0 (Elite Core)
  */
 
 const I18N = {
     km: {
         timer_hint: "សូមបង់ប្រាក់ក្នុងកំឡុងពេលកំណត់",
-        instruction: "អ្នកអាចស្កេនកូដបង់ប្រាក់ ឬចម្លងគណនីផ្ទេរប្រាក់ដោយដៃ",
+        instruction: "ស្កេនកូដបង់ប្រាក់ ឬចម្លងគណនីផ្ទេរប្រាក់",
         amount_label: "ចំនួនទឹកប្រាក់ត្រូវបង់",
-        amount_warning: "សូមប្រាកដថាចំនួនទឹកប្រាក់ផ្ទេរដូចគ្នានឹងចំនួនត្រូវបង់",
+        amount_warning: "សូមផ្ទេរឱ្យគ្រប់ចំនួនដើម្បីទទួលបានការទូទាត់ស្វ័យប្រវត្ត",
         receiver_label: "អ្នកទទួល",
         card_label: "គណនីទទួល",
         bank_label_row: "ធនាគារទទួល",
         order_no_label: "លេខបញ្ជាទិញ",
         copy: "ចម្លង",
-        waiting_pay: "កំពុងរង់ចាំការបង់ប្រាក់...",
+        waiting_pay: "កំពុងរង់ចាំ...",
         copied: "បានចម្លង!",
-        pay_success: "ការបង់ប្រាក់បានជោគជ័យ!",
-        save_qr: "រក្សាទុកកូដ QR ទៅកាន់អាល់ប៊ុម",
-        assigning: "កំពុងបែងចែកគណនី...",
+        pay_success: "បង់ប្រាក់ជោគជ័យ!",
+        save_qr: "រក្សាទុក QR",
+        assigning: "កំពុងបែងចែក...",
         order_expired: "ការបញ្ជាទិញបានហួសពេល!",
         retry_btn: "ព្យាយាមម្តងទៀត",
-        auto_close: "ទំព័រនឹងបិទដោយស្វ័យប្រវត្តក្នុងរយៈពេល {{sec}} វិនាទី..."
+        auto_close: "ទំព័រនឹងបិទក្នុងរយៈពេល {{sec}} វិនាទី..."
     },
     en: {
         timer_hint: "Please complete payment in time",
@@ -33,7 +33,7 @@ const I18N = {
         bank_label_row: "Receiving Bank",
         order_no_label: "Order No",
         copy: "Copy",
-        waiting_pay: "Waiting for payment...",
+        waiting_pay: "Waiting...",
         copied: "Copied!",
         pay_success: "Payment Success!",
         save_qr: "Save QR to Album",
@@ -95,7 +95,7 @@ function updateInterface() {
     });
 }
 
-// 核心：一键锁定 Bakong Logo
+// 核心：锁定 Bakong Logo 路由
 const UNIFIED_LOGO_PATH = "assets/img/bank_logo/bakong_logo.png";
 
 window.renderQrCode = function (qrData) {
@@ -118,19 +118,19 @@ window.renderQrCode = function (qrData) {
         if (!source) return;
 
         const canvas = document.createElement('canvas');
-        canvas.width = 400; canvas.height = 400;
+        canvas.width = 440; canvas.height = 440;
         const ctx = canvas.getContext('2d');
         ctx.scale(2, 2);
 
         ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, 200, 200);
-        ctx.drawImage(source, 10, 10, 180, 180);
+        ctx.fillRect(0, 0, 220, 220);
+        ctx.drawImage(source, 20, 20, 180, 180);
 
         const logo = new Image();
         logo.src = UNIFIED_LOGO_PATH;
         logo.onload = () => {
-            const lSize = 40, p = 3;
-            const lx = (200 - lSize) / 2, ly = (200 - lSize) / 2;
+            const lSize = 42, p = 3;
+            const lx = (220 - lSize) / 2, ly = (220 - lSize) / 2;
             ctx.fillStyle = "#FFFFFF"; ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(lx - p, ly - p, lSize + p * 2, lSize + p * 2, 8);
             else ctx.rect(lx - p, ly - p, lSize + p * 2, lSize + p * 2);
@@ -138,12 +138,12 @@ window.renderQrCode = function (qrData) {
             ctx.drawImage(logo, lx, ly, lSize, lSize);
 
             const finalImg = new Image();
-            finalImg.style.width = '200px'; finalImg.style.display = 'block'; finalImg.style.margin = '0 auto'; finalImg.style.borderRadius = '8px';
+            finalImg.style.width = '220px'; finalImg.style.borderRadius = '8px';
             finalImg.src = canvas.toDataURL("image/png");
             qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
             document.body.removeChild(tempDiv);
         };
-        logo.onerror = () => { /* 容错直接渲染 */ };
+        logo.onerror = () => { document.body.removeChild(tempDiv); };
     };
 
     const t = setInterval(() => {
@@ -153,13 +153,11 @@ window.renderQrCode = function (qrData) {
     }, 50);
 };
 
-window.saveQrCode = async function () {
-    const qrContainer = document.getElementById("qrcode");
-    const source = qrContainer.querySelector('img');
-    if (!source) return;
-
+window.saveQrCode = function () {
+    const img = document.querySelector("#qrcode img");
+    if (!img) return;
     const link = document.createElement('a');
-    link.href = source.src;
+    link.href = img.src;
     link.download = `KHQR_${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
@@ -167,49 +165,41 @@ window.saveQrCode = async function () {
 };
 
 window.switchBank = async function (bankName) {
-    const config = document.getElementById('checkout-config').dataset;
-    const placeholder = document.getElementById('selection-placeholder');
-    const qrArea = document.getElementById('qr-display-area');
-    const infoArea = document.getElementById('payment-info-area');
-
-    if (placeholder) {
-        placeholder.innerHTML = `<div class="p-4 text-center"><div class="spinner-border text-primary"></div><div class="mt-2 small text-muted">${I18N[currentLang].assigning}</div></div>`;
-        placeholder.classList.remove('d-none');
-    }
-    if (qrArea) qrArea.classList.add('d-none');
-    if (infoArea) infoArea.classList.add('d-none');
+    const ono = document.getElementById('checkout-config').dataset.orderNo;
+    const box = document.getElementById('qr-container-box');
+    box.style.opacity = '0.3';
 
     try {
-        const apiBase = window.API_BASE || '';
-        const response = await fetch(`${apiBase}api/switch_bank.php`, {
+        const res = await fetch(`${window.API_BASE}api/switch_bank.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_no: config.orderNo, bank_name: bankName, token: currentToken })
+            body: JSON.stringify({ order_no: ono, bank_name: bankName, token: currentToken })
         });
-        const res = await response.json();
-        if (res.code === 200) {
-            applyPaymentData(res.data);
-            if (placeholder) placeholder.classList.add('d-none');
-            // 更新活跃状态
-            document.querySelectorAll('.bank-grid-item-mini').forEach(p => p.style.borderColor = "#f0f0f0");
-            const activeBank = Array.from(document.querySelectorAll('.bank-grid-item-mini')).find(p => p.onclick.toString().includes(bankName));
-            if (activeBank) activeBank.style.borderColor = "#ED1C24";
+        const json = await res.json();
+        if (json.code === 200) {
+            applyPaymentData(json.data);
+            // 更新活跃态
+            document.querySelectorAll('.bank-item').forEach(el => el.classList.remove('active'));
+            const activeItem = Array.from(document.querySelectorAll('.bank-item')).find(el => el.innerHTML.includes(bankName));
+            if (activeItem) activeItem.classList.add('active');
         }
     } catch (e) { console.error(e); }
+    finally { box.style.opacity = '1'; }
 };
 
 function applyPaymentData(data) {
-    document.getElementById('qr-display-area').classList.remove('d-none');
-    document.getElementById('payment-info-area').classList.remove('d-none');
-    document.getElementById('display-account-name').textContent = data.account_name || '--';
-    document.getElementById('display-card-no').textContent = data.account_no || data.card_no;
-    document.getElementById('display-bank-name').textContent = (data.bank_name || 'Bakong') + ' Bank';
-    
-    // 金额智能切分
+    // 金额动态切分 (Big-Int, Small-Dec)
     const amt = parseFloat(data.real_amount).toFixed(2);
     const parts = amt.split('.');
-    document.getElementById('amt-integer').textContent = parts[0];
-    document.getElementById('amt-decimal').textContent = '.' + parts[1];
+    document.getElementById('render-amt-int').textContent = parts[0];
+    document.getElementById('render-amt-dec').textContent = '.' + parts[1];
+
+    // 详情卡片
+    document.getElementById('val-recv').textContent = data.account_name || '--';
+    document.getElementById('render-merchant-name').textContent = data.account_name || '--';
+    document.getElementById('val-card').textContent = data.account_no || data.card_no;
+    document.getElementById('val-bank').textContent = (data.bank_name || 'Bakong') + ' Bank';
+    document.getElementById('val-order').textContent = data.order_no;
 
     window.renderQrCode(data.khqr_string || data.qr_data);
 }
@@ -229,13 +219,12 @@ window.initPage = async function () {
 
         const data = json.data;
         document.getElementById('checkout-config').dataset.orderNo = data.order_no;
-        document.getElementById('display-order-no').textContent = data.order_no;
-        document.getElementById('merchant-ref-display').textContent = data.out_order_no || 'N/A';
+        document.getElementById('render-merchant-ref').textContent = data.out_order_no || 'N/A';
 
         applyPaymentData(data);
         startPolling(ono);
 
-        // 倒计时
+        // 倒计时核心逻辑
         let remain = 0;
         if (data.expire_at && data.server_time) {
             const exp = new Date(data.expire_at.replace(/-/g, '/')).getTime();
@@ -250,33 +239,34 @@ window.initPage = async function () {
 
 function startPolling(ono) {
     setInterval(async () => {
-        const res = await fetch(`${window.API_BASE}api/check_order.php?order_no=${ono}&token=${currentToken}`);
-        const json = await res.json();
-        if (json.status === 'paid') showSuccessMask();
+        try {
+            const res = await fetch(`${window.API_BASE}api/check_order.php?order_no=${ono}&token=${currentToken}`);
+            const json = await res.json();
+            if (json.status === 'paid') showSuccessMask();
+        } catch (e) {}
     }, 4000);
 }
 
 function startCountdown(sec) {
-    const timerEl = document.getElementById('timer-text');
-    const update = () => {
+    const timerEl = document.getElementById('render-timer');
+    const tick = () => {
         const m = Math.floor(sec / 60);
         const s = sec % 60;
-        timerEl.textContent = `${m}:${s < 10 ? '0' + s : s}`;
+        timerEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         if (sec <= 0) { showExpiryMask(); return; }
         sec--;
-        setTimeout(update, 1000);
+        timerEl._timerTimeout = setTimeout(tick, 1000);
     };
-    update();
+    tick();
 }
 
 function showSuccessMask() {
-    document.getElementById('success-mask').style.display = 'flex';
+    document.getElementById('mask-success').style.display = 'flex';
     setTimeout(() => window.location.reload(), 3000);
 }
 
 function showExpiryMask() {
-    document.getElementById('expiry-mask').style.display = 'flex';
-    document.querySelector('.checkout-container').style.opacity = '0.3';
+    document.getElementById('mask-expiry').style.display = 'flex';
 }
 
 window.copyText = function (id, btn) {
@@ -284,8 +274,8 @@ window.copyText = function (id, btn) {
     navigator.clipboard.writeText(text).then(() => {
         const old = btn.innerText;
         btn.innerText = I18N[currentLang].copied;
-        btn.style.backgroundColor = "#198754";
-        setTimeout(() => { btn.innerText = old; btn.style.backgroundColor = ""; }, 1000);
+        btn.style.backgroundColor = "#198754"; btn.style.color = "#fff";
+        setTimeout(() => { btn.innerText = old; btn.style.backgroundColor = ""; btn.style.color = ""; }, 1000);
     });
 };
 
