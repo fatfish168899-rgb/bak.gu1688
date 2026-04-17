@@ -215,15 +215,39 @@ window.renderQrCode = function (qrData) {
     setTimeout(() => clearInterval(t), 5000);
 };
 
-window.saveQrCode = function () {
-    const img = document.querySelector("#qrcode img");
-    if (!img) return;
-    const link = document.createElement('a');
-    link.href = img.src;
-    link.download = `KHQR_${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+window.saveQrCode = async function () {
+    const ticketEl = document.querySelector(".qr-ticket-section");
+    if (!ticketEl || typeof html2canvas === 'undefined') return;
+
+    // 获取商户订单号作为文件名
+    const orderNo = (document.getElementById('display-merchant-order-no')?.innerText || 'KHQR').trim();
+
+    try {
+        // [V65.8] 进入截图模式：隐藏扫描线逻辑
+        ticketEl.classList.add("is-capturing");
+
+        // 使用 html2canvas 截取整张票据
+        const canvas = await html2canvas(ticketEl, {
+            scale: 2,           // 高清采样
+            useCORS: true,      // 允许跨域图片渲染
+            backgroundColor: "#ffffff",
+            logging: false
+        });
+
+        // 截图结束恢复状态
+        ticketEl.classList.remove("is-capturing");
+
+        const dataUrl = canvas.toDataURL("image/png");
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `${orderNo}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error("Capture failed", err);
+        ticketEl.classList.remove("is-capturing");
+    }
 };
 
 function applyPaymentData(data) {
