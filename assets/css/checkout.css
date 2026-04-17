@@ -72,11 +72,13 @@ body {
 }
 
 .checkout-container {
-    max-width: 500px; /* [FIX] 拓宽容器至 500 级别 */
+    max-width: 500px;
+    /* [FIX] 拓宽容器至 500 级别 */
     width: 100%;
     padding: 0 10px;
     margin: 0 auto;
-    opacity: 0; /* [FIX] 初始隐藏，防止渲染闪烁 */
+    opacity: 0;
+    /* [FIX] 初始隐藏，防止渲染闪烁 */
     transition: opacity 0.4s ease;
 }
 
@@ -90,7 +92,8 @@ body {
     position: relative;
     overflow: hidden;
     margin-top: 0;
-    max-width: 500px; /* [FIX] 同步拓宽 */
+    max-width: 500px;
+    /* [FIX] 同步拓宽 */
 }
 
 .amount-display {
@@ -274,7 +277,8 @@ body {
 /* QR 保存按钮 (1:1 深度复刻本地偏好) */
 .qr-action-group {
     margin: 10px 20px;
-    background: transparent; /* 改为透明，让按钮主体突出 */
+    background: transparent;
+    /* 改为透明，让按钮主体突出 */
     border-radius: 0;
     overflow: visible;
     box-shadow: none;
@@ -284,14 +288,18 @@ body {
 .qr-save-btn {
     border: none;
     width: 100%;
-    max-width: 320px; /* [FIX] 限制最大宽度，防止 500px 容器下显得过长 */
-    margin: 0 auto;  /* 居中 */
+    max-width: 180px;
+    /* [FIX] 进一步缩短按钮，使其更紧凑 */
+    margin: 0 auto;
+    /* 居中 */
     padding: 12px;
     font-size: 0.95rem;
     font-weight: 700;
     color: #ffffff;
-    background: #1a1f2e; /* [FIX] 改为本地版深蓝色调 */
-    border-radius: 50px; /* [FIX] 改为高圆角药丸形态 */
+    background: #1a1f2e;
+    /* [FIX] 改为本地版深蓝色调 */
+    border-radius: 50px;
+    /* [FIX] 改为高圆角药丸形态 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -470,14 +478,16 @@ body.panel-open .side-tab {
 .side-panel-wrapper.left .side-tab {
     right: -36px;
     border-radius: 0 14px 14px 0;
-    background: #0056ff; /* 客服蓝色 */
+    background: #0056ff;
+    /* 客服蓝色 */
     box-shadow: 0 4px 15px rgba(0, 86, 255, 0.2);
 }
 
 .side-panel-wrapper.right .side-tab {
     left: -36px;
     border-radius: 14px 0 0 14px;
-    background: #ffb300; /* 帮助黄色 */
+    background: #ffb300;
+    /* 帮助黄色 */
     box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);
 }
 
@@ -813,6 +823,7 @@ body.panel-open .side-tab {
 .is-capturing .qr-scan-line {
     display: none !important;
 }
+
 .is-capturing .qr-scanner-wrapper {
     box-shadow: none !important;
 }
