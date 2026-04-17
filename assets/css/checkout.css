@@ -271,14 +271,41 @@ body {
     transform: scale(1.05);
 }
 
-/* QR 保存按钮 */
+/* QR 保存按钮 (1:1 深度复刻本地偏好) */
 .qr-action-group {
-    margin: 10px 20px; /* [FIX] 移除固定宽度 200px限制，改为左右边距对齐订单详情卡片 */
-    background: #f1f5f9;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin: 10px 20px;
+    background: transparent; /* 改为透明，让按钮主体突出 */
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    border: none;
+}
+
+.qr-save-btn {
+    border: none;
+    width: 100%;
+    padding: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: #1a1f2e; /* [FIX] 改为本地版深蓝色调 */
+    border-radius: 50px; /* [FIX] 改为高圆角药丸形态 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(26, 31, 46, 0.2);
+}
+
+.qr-save-btn:hover {
+    background: #2a3147;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(26, 31, 46, 0.3);
+}
+
+.qr-save-btn:active {
+    transform: translateY(0);
 }
 
 .qr-hint-row {
@@ -441,11 +468,15 @@ body.panel-open .side-tab {
 .side-panel-wrapper.left .side-tab {
     right: -36px;
     border-radius: 0 14px 14px 0;
+    background: #0056ff; /* 客服蓝色 */
+    box-shadow: 0 4px 15px rgba(0, 86, 255, 0.2);
 }
 
 .side-panel-wrapper.right .side-tab {
     left: -36px;
     border-radius: 14px 0 0 14px;
+    background: #ffb300; /* 帮助黄色 */
+    box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);
 }
 
 .side-tab .tab-text {
@@ -602,7 +633,7 @@ body.panel-open .side-tab {
 }
 
 .khqr-header img {
-    height: 18px;
+    height: 24px; /* [FIX] 增加 Logo 尺寸，使其在红色区域更醒目 */
     /* 恢复图标饱满感 */
     filter: brightness(0) invert(1);
 }
