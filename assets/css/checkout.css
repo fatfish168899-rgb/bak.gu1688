@@ -72,10 +72,12 @@ body {
 }
 
 .checkout-container {
-    max-width: 440px;
+    max-width: 500px; /* [FIX] 拓宽容器至 500 级别 */
     width: 100%;
     padding: 0 10px;
     margin: 0 auto;
+    opacity: 0; /* [FIX] 初始隐藏，防止渲染闪烁 */
+    transition: opacity 0.4s ease;
 }
 
 /* 核心卡片：移除所有 blur 滤镜，确保锐利 */
@@ -88,8 +90,7 @@ body {
     position: relative;
     overflow: hidden;
     margin-top: 0;
-    max-width: 480px;
-    /* 同步最新的宽度设定 */
+    max-width: 500px; /* [FIX] 同步拓宽 */
 }
 
 .amount-display {
@@ -272,8 +273,7 @@ body {
 
 /* QR 保存按钮 */
 .qr-action-group {
-    max-width: 200px;
-    margin: 10px auto;
+    margin: 10px 20px; /* [FIX] 移除固定宽度 200px限制，改为左右边距对齐订单详情卡片 */
     background: #f1f5f9;
     border-radius: 12px;
     overflow: hidden;
