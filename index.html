@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/all.min.css" rel="stylesheet">
-    <link href="assets/css/checkout.css?v=65.0" rel="stylesheet">
+    <link href="assets/css/checkout.css?v=65.4" rel="stylesheet">
 </head>
 <body>
 
@@ -140,7 +140,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- 侧边面板：移至此处，并增加容器定位约束 [V27.3 复刻] -->
+        <div class="side-panel-container">
+            <!-- 左侧：联系客服 (入口动态绑定) -->
+            <div class="side-panel-wrapper left" id="contact-panel" style="display: none;">
+                <div class="side-tab" id="btn-contact-us">
+                    <span class="tab-text" data-i18n="contact_us">联系我们</span>
+                    <i class="fa-solid fa-headset tab-icon"></i>
+                </div>
+            </div>
+
+            <!-- 右侧：帮助指引 (侧边黄色侧标) -->
+            <div class="side-panel-wrapper right" id="help-panel-tab">
+                <div class="side-tab" onclick="togglePanel('help-panel')">
+                    <i class="fa-solid fa-circle-question tab-icon"></i>
+                    <span class="tab-text" data-i18n="help_guide">帮助指引</span>
+                </div>
+            </div>
+            
+            <!-- 帮助抽屉独立渲染 -->
+            <div class="side-drawer help-drawer" id="help-panel" onclick="togglePanel('help-panel')">
+                <div class="drawer-header orange-theme">
+                    <div class="header-icon-box"><i class="fa-solid fa-circle-question"></i></div>
+                    <div class="header-text">
+                        <div class="main-title" data-i18n="help">充值说明</div>
+                        <div class="sub-title" data-i18n="click_close">点击图片可收回</div>
+                    </div>
+                </div>
+                <div class="drawer-content p-0">
+                    <!-- 路径匹配本地库 -->
+                    <img src="assets/img/topup_hint_en.jpg" class="img-fluid help-img" alt="Help">
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- 遮罩层 (保持在全局以覆盖整个视口) -->
+    <div class="side-panel-overlay" id="panel-overlay" onclick="closeAllPanels()"></div>
 
     <!-- 成功状态遮罩 (1:1 复刻逻辑) -->
     <div id="mask-success" class="mask-overlay" style="display:none; position:fixed; inset:0; background:#fff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
@@ -168,6 +205,6 @@
     <script src="assets/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/qrcode.min.js"></script>
     <script>window.API_BASE = 'https://khbak.gu1688.com/';</script>
-    <script src="assets/js/checkout.js?v=65.0"></script>
+    <script src="assets/js/checkout.js?v=65.4"></script>
 </body>
 </html>
