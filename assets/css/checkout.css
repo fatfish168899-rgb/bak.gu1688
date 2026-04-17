@@ -1,999 +1,620 @@
-:root {
-    --primary: #0056ff;
-    --primary-gradient: linear-gradient(135deg, #0056ff 0%, #00a2ff 100%);
-    --bg-light: #f4f7fe;
-    --text-main: #1a2b4b;
-    --text-muted: #6b7c93;
-    --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(226, 232, 240, 0.8);
-    --km-font: 'Kantumruy Pro', 'Kantumruy', 'Noto Sans Khmer', 'Hanuman', 'Khmer OS Content', 'Khmer Sangam MN', system-ui, sans-serif;
-}
+/**
+ * PayBank Checkout Logic
+ * Version: 1.2.1-STATIC-SMART [Auto-Hydration Edition]
+ * 1:1 Mirror from Production (Public) + Smart Initialization
+ */
 
-/* 高棉语视觉优化 (V20.1) */
-html[lang="km"] body {
-    font-family: var(--km-font) !important;
-}
+const API_BASE = "https://khbak.gu1688.com/"; // [V66.5-FIX] 找回丢失的服务器域名配置
 
-html[lang="km"] .detail-label,
-html[lang="km"] .detail-value,
-html[lang="km"] div,
-html[lang="km"] span,
-html[lang="km"] button {
-    font-weight: 500;
-}
-
-html[lang="km"] .fw-bold,
-html[lang="km"] strong {
-    font-weight: 700 !important;
-}
-
-/* 语言切换器样式 */
-.lang-switcher {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 1px 6px;
-    border-radius: 12px;
-    font-size: 0.6rem;
-    color: #666;
-}
-
-.lang-btn {
-    cursor: pointer;
-    padding: 0 3px;
-    transition: all 0.2s;
-    user-select: none;
-}
-
-.lang-btn.active {
-    color: #0d6efd;
-    font-weight: bold;
-}
-
-.lang-btn:hover {
-    color: #0d6efd;
-}
-
-.lang-switcher .divider {
-    margin: 0 2px;
-    opacity: 0.3;
-}
-
-body {
-    background: var(--bg-light);
-    background-image: radial-gradient(at 0% 0%, rgba(0, 86, 255, 0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(0, 162, 255, 0.08) 0px, transparent 50%);
-    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-    color: var(--text-main);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 0;
-}
-
-.checkout-container {
-    max-width: 500px;
-    /* [FIX] 拓宽容器至 500 级别 */
-    width: 100%;
-    padding: 0 10px;
-    margin: 0 auto;
-    opacity: 0;
-    /* [FIX] 初始隐藏，防止渲染闪烁 */
-    transition: opacity 0.4s ease;
-}
-
-/* 核心卡片：移除所有 blur 滤镜，确保锐利 */
-.payment-card {
-    background: #ffffff;
-    border-radius: 20px;
-    border: 1px solid #eef2f6;
-    box-shadow: 0 15px 40px rgba(0, 86, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
-    padding: 6px 14px;
-    position: relative;
-    overflow: hidden;
-    margin-top: 0;
-    max-width: 500px;
-    /* [FIX] 同步拓宽 */
-}
-
-.amount-display {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #0055ff;
-    margin: 5px 0 2px 0 !important;
-    letter-spacing: -1px;
-    text-align: center;
-}
-
-.amount-warning-container {
-    margin-top: 0 !important;
-    margin-bottom: 5px !important;
-}
-
-.qr-ticket-section {
-    width: 300px;
-    display: block !important;
-    margin: 10px auto !important;
-    /* 强制水平居中 */
-    padding: 0;
-    overflow: hidden;
-    position: relative;
-    background: #fff;
-    border-radius: 20px;
-    /* 增加视觉区块感 [V29.5] */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-    border: 1px solid #f0f3f6;
-}
-
-.qr-area {
-    padding: 2px;
-    border-radius: 12px;
-    margin: 4px 0;
-    text-align: center;
-    position: relative;
-}
-
-#qrcode {
-    padding: 0;
-    background: transparent;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
-}
-
-.final-qr-img {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-/* 圆环倒计时样式 */
-.circular-timer {
-    width: 44px;
-    height: 44px;
-}
-
-.circle-bg {
-    fill: none;
-    stroke: #f1f5f9;
-    stroke-width: 3.5;
-}
-
-.circle {
-    fill: none;
-    stroke: #ff4d4f;
-    stroke-width: 3.5;
-    stroke-linecap: round;
-    transition: stroke-dasharray 0.3s ease;
-}
-
-.percentage {
-    fill: #334155;
-    font-size: 9px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 800;
-    text-anchor: middle;
-}
-
-/* 订单详情卡片 */
-.order-details-card {
-    background: #fdfdfe;
-    border: 1px solid #f1f5f9;
-    border-radius: 12px;
-    margin: 5px 20px 8px 20px;
-    padding: 2px 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px dashed #e2e8f0;
-}
-
-.detail-row:last-child {
-    border-bottom: none;
-}
-
-.detail-label {
-    font-size: 0.8rem;
-    color: #64748b;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    min-width: 68px;
-    flex-shrink: 0;
-}
-
-.detail-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-grow: 1;
-    justify-content: flex-end;
-}
-
-.detail-value {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #1e293b;
-    text-align: right;
-    word-break: break-all;
-}
-
-.mini-copy-btn {
-    background: #f0f7ff;
-    color: #448aff;
-    border: none;
-    padding: 2px 10px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-#display-card-no {
-    font-size: 1.15rem;
-    font-weight: 800;
-}
-
-#display-order-no {
-    font-size: 0.62rem;
-    font-weight: 400;
-    opacity: 0.6;
-    word-break: break-all;
-    line-height: 1.2;
-}
-
-/* 银行选择器 */
-.bank-pill-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 0 5px;
-}
-
-.bank-pill img {
-    width: 100%;
-    height: 48px;
-    object-fit: contain;
-    background: #fff;
-    border: 1.5px solid #d1d9e0;
-    border-radius: 12px;
-    padding: 3px;
-    transition: all 0.3s;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.bank-pill.active img {
-    border-color: var(--primary);
-    border-width: 2.5px;
-    transform: scale(1.05);
-}
-
-/* QR 保存按钮 (1:1 深度复刻本地偏好) */
-.qr-action-group {
-    margin: 10px 20px;
-    background: transparent;
-    /* 改为透明，让按钮主体突出 */
-    border-radius: 0;
-    overflow: visible;
-    box-shadow: none;
-    border: none;
-}
-
-.qr-save-btn {
-    border: none;
-    width: 100%;
-    max-width: 180px;
-    /* [FIX] 锁定为用户选择的 180px 紧凑宽度 */
-    margin: 0 auto;
-    /* 居中 */
-    padding: 12px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #ffffff;
-    background: #1a1f2e;
-    /* [FIX] 改为本地版深蓝色调 */
-    border-radius: 50px;
-    /* [FIX] 改为高圆角药丸形态 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 15px rgba(26, 31, 46, 0.2);
-}
-
-.qr-save-btn:hover {
-    background: #2a3147;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(26, 31, 46, 0.3);
-}
-
-.qr-save-btn:active {
-    transform: translateY(0);
-}
-
-.qr-hint-row {
-    padding: 6px 10px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-align: center;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: #f8fafc;
-}
-
-.qr-save-btn {
-    border: none;
-    width: 100%;
-    padding: 9px;
-    font-size: 0.78rem;
-    font-weight: 800;
-    color: #ffffff;
-    background: #0056ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-/* 呼吸灯效果 */
-.pulse-dot {
-    width: 8px;
-    height: 8px;
-    background-color: #00c853;
-    border-radius: 50%;
-    margin-right: 8px;
-    box-shadow: 0 0 0 rgba(0, 200, 83, 0.4);
-    animation: dot-pulse 2s infinite ease-in-out;
-}
-
-@keyframes dot-pulse {
-    0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7);
+const I18N = {
+    km: {
+        timer_hint: "សូមបង់ប្រាក់ក្នុងកំឡុងពេលនេះ ប្រព័ន្ធនឹងទូទាត់ដោយស្វ័យប្រវត្ត",
+        placeholder_title: "ទូទាត់តាម Bakong",
+        placeholder_desc: "ជ្រើស Bakong ដើម្បីបង្ហាញកូដ KHQR",
+        instruction: "អ្នកអាចស្កេនកូដបង់ប្រាក់ ឬចម្លងគណនីផ្ទេរប្រាក់ដោយដៃ",
+        amount_label: "ចំនួនទឹកប្រាក់ត្រូវបង់",
+        amount_warning: "សូមប្រាកដថាចំនួនទឹកប្រាក់ផ្ទេរដូចគ្នានឹងចំនួនត្រូវបង់ ប្រព័ន្ធនឹងទូទាត់ដោយស្វ័យប្រវត្ត",
+        receiver_label: "អ្នកទទួល",
+        card_label: "គណនីទទួល",
+        copy: "ចម្លង",
+        waiting_pay: "កំពុងរង់ចាំការបង់ប្រាក់...",
+        copied: "បានចម្លង!",
+        must_use: "ត្រូវតែប្រើ App {{bank}} ដើម្បីស្កេន",
+        recom_use: "ណែនាំឱ្យប្រើ App {{bank}} ដើម្បីស្កេន",
+        pay_success: "ការបង់ប្រាក់បានជោគជ័យ!",
+        close_page: "បិទទំព័រនេះ",
+        switch_fail: "ការផ្លាស់ប្តូរបានបរាជ័យ",
+        auto_close: "ទំព័រនឹងបិទដោយស្វ័យប្រវត្តក្នុងរយៈពេល {{sec}} វិនាទី...",
+        save_qr: "រក្សាទុកកូដ QR ទៅកាន់អាល់ប៊ុម",
+        save_hint: "* បន្ទាប់ពីរក្សាទុក សូមបើក App ធនាគារ ហើយជ្រើសរើសរូបភាព",
+        assigning: "កំពុងបែងចែកគណនី...",
+        no_bank_card: "មិនមានគណនី Bakong ដែលអាចប្រើបាន សូមព្យាយាមម្តងទៀត",
+        net_err: "កំហុសបណ្តាញ សូមព្យាយាមម្តងទៀត",
+        order_no_label: "លេខបញ្ជាទិញ",
+        bank_label_row: "ធនាគារទទួល",
+        support: "ជំនួយអតិថិជន",
+        help: "របៀបបង់ប្រាក់",
+        close: "យល់ព្រម",
+        contact_us: "ទាក់ទងមកយើង",
+        help_guide: "ការណែនាំ",
+        click_close: "ចុចលើរូបភាពដើម្បីបិទ",
+        help_img: "assets/img/topup_hint_km.jpg?v=1.0",
+        merchant_ref: "លេខយោងអាជីវករ",
+        supported_banks_hint: "គាំទ្រគ្រប់ភ្នាក់ងារធនាគារ KHQR ខាងលើ",
+        supported_banks_footer: "គាំទ្រគ្រប់ភ្នាក់ងារធនាគារ KHQR ខាងលើ",
+        warn_1: "ប្រសិនបើនេះមិនមែនជាការបញ្ជាទិញរបស់អ្នកទេ សូមកុំបង់ប្រាក់",
+        warn_2: "ជូនដំណឹងម្ដងទៀត សូមកុំកត់ត្រាលេខគណនី ពីព្រោះវាអាចផ្លាស់ប្តូរបានជានិច្ច ដោយគ្មានការជូនដំណឹង ការពិនិត្យគណនីគោលដៅមុនពេលផ្ទេរគឺមានសារៈសំខាន់",
+        warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ បើមិនដូច្នេះទេ អ្នកនឹងមិនទទួលបានចំនួនដើមទេ",
+        initializing: "កំពុងទាញយកព័ត៌មានការបញ្ជាទិញ...",
+        expired: "ការបញ្ជាទិញបានហួសសម័យ",
+        expired_hint: "សូមត្រឡប់ទៅអាជីវករវិញ ដើម្បីចាប់ផ្ដើមការបង់ប្រាក់ឡើងវិញ"
+    },
+    en: {
+        timer_hint: "Please pay within this time, system will auto-credit",
+        placeholder_title: "Pay with Bakong",
+        placeholder_desc: "Select Bakong to show KHQR",
+        instruction: "Scan QR code or copy account for manual transfer",
+        amount_label: "Total Amount Due",
+        amount_warning: "Ensure transfer amount matches due amount for auto-credit",
+        receiver_label: "Receiver",
+        card_label: "Account No",
+        copy: "Copy",
+        waiting_pay: "Waiting for payment...",
+        copied: "Copied!",
+        must_use: "Must use {{bank}} App to scan",
+        recom_use: "Recommend {{bank}} App to scan",
+        pay_success: "Payment Success!",
+        close_page: "Close Page",
+        switch_fail: "Switch Failed",
+        auto_close: "Page will close automatically in {{sec}} seconds...",
+        save_qr: "Save QR to Album",
+        save_hint: "* After saving, open banking app and select this photo",
+        assigning: "Assigning account...",
+        no_bank_card: "No available Bakong account, please try again",
+        net_err: "Network error, please try again",
+        order_no_label: "Order No",
+        bank_label_row: "Receiving Bank",
+        support: "Support",
+        help: "Help",
+        close: "Got it",
+        contact_us: "Contact Us",
+        help_guide: "Help Guide",
+        click_close: "Click to close",
+        help_img: "assets/img/topup_hint_en.jpg?v=1.0",
+        merchant_ref: "Merchant Ref",
+        supported_banks_hint: "Supports all the above KHQR banks",
+        supported_banks_footer: "Supports all the above KHQR banks",
+        warn_1: "If this is not your order, please do not pay.",
+        warn_2: "Do not save this account number as it may change without notice. Verifying the receiver before transfer is essential.",
+        warn_3: "Please pay on time and only the exact amount shown to ensure auto-credit.",
+        initializing: "Initializing order info...",
+        expired: "Order Expired",
+        expired_hint: "Please return to merchant and re-initiate payment"
+    },
+    zh: {
+        timer_hint: "请在规定时间内完成支付",
+        placeholder_title: "Bakong 支付",
+        placeholder_desc: "选择 Bakong 以显示 KHQR 付款码",
+        instruction: "您可扫码支付，或复制账号手动转账",
+        amount_label: "应付总额",
+        amount_warning: "请确保金额一致，否则无法自动到账",
+        receiver_label: "收款人",
+        card_label: "收款账号",
+        bank_label_row: "收款银行",
+        order_no_label: "订单号",
+        copy: "复制",
+        waiting_pay: "正在等待支付...",
+        copied: "已复制!",
+        must_use: "必须使用 {{bank}} App 扫码",
+        recom_use: "推荐使用 {{bank}} App 扫码",
+        pay_success: "支付成功!",
+        close_page: "关闭页面",
+        switch_fail: "切换失败",
+        auto_close: "页面将在 {{sec}} 秒内自动关闭...",
+        save_qr: "保存二维码到相册",
+        save_hint: "* 保存后打开银行 App，选择该相册图片支付",
+        assigning: "正在为您分配收款账号...",
+        no_bank_card: "暂无可用 Bakong 收款账号，请稍后重试",
+        net_err: "网络异常，请刷新后重试",
+        order_no_label: "订单号",
+        bank_label_row: "收款银行",
+        support: "客服支持",
+        help: "充值帮助",
+        close: "我知道了",
+        contact_us: "联系我们",
+        help_guide: "帮助指引",
+        click_close: "点击图片可收回",
+        help_img: "assets/img/topup_hint_zh.jpg?v=1.0",
+        merchant_ref: "商户单号",
+        supported_banks_hint: "支持以上所有 KHQR 银行",
+        supported_banks_footer: "支持以上所有 KHQR 银行",
+        warn_1: "如果这不是您的订单，请勿支付。",
+        warn_2: "请勿记录此收款账号，账号会不定期更换。转账前请务必核对收款人及账号。",
+        warn_3: "请及时支付且仅支付显示的准确金额，否则将无法自动到账。",
+        initializing: "正在初始化订单信息...",
+        expired: "订单已失效",
+        expired_hint: "请返回商户重新发起支付"
     }
+};
 
-    70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(0, 200, 83, 0);
-    }
+const BANK_COLORS = {
+    'BAKONG': '#ED1C24'
+};
 
-    100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(0, 200, 83, 0);
+let isExpired = false; // [V66.5-STATE] 记录订单是否已失效，用于语言切换联动
+
+function getDetectLanguage() {
+    const cookieLang = document.cookie.split('; ').find(row => row.startsWith('paybakong_lang='))?.split('=')[1];
+    if (cookieLang) return cookieLang;
+    const saved = localStorage.getItem('paybank_lang');
+    if (saved) return saved;
+    const browserLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    if (browserLang.startsWith('zh')) return 'zh';
+    if (browserLang.startsWith('km')) return 'km';
+    return 'en';
+}
+
+let currentLang = getDetectLanguage();
+
+window.setLanguage = function (lang) {
+    currentLang = lang;
+    localStorage.setItem('paybank_lang', lang);
+    document.cookie = "paybakong_lang=" + lang + "; path=/; max-age=" + (30 * 24 * 60 * 60);
+    updateInterface();
+}
+
+window.safeOpen = function (url) {
+    if (!url) return;
+    const win = window.open(url, '_blank');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = url;
     }
 }
 
-.status-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #64748b;
-}
+const urlParams = new URLSearchParams(window.location.search);
+const currentToken = urlParams.get('token') || '';
+const currentOrderNo = urlParams.get('order_no') || '';
 
-.copy-toast {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s;
-    z-index: 10000;
-    pointer-events: none;
-}
+function updateInterface() {
+    document.documentElement.lang = currentLang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (I18N[currentLang] && I18N[currentLang][key]) {
+            el.innerText = I18N[currentLang][key];
+        }
+    });
 
-.copy-toast.show {
-    opacity: 1;
-    visibility: visible;
-    transform: translate(-50%, -60%);
-}
-
-/* ==========================================================================
-   全新左右状态系统 (V27.3 - 独立解耦版)
-   ========================================================================== */
-
-.side-panel-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.65);
-    z-index: 3000;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-}
-
-.side-panel-overlay.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.side-panel-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.side-panel-wrapper {
-    position: absolute;
-    top: 40%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    z-index: 2500;
-    pointer-events: auto;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-
-body.panel-open .side-tab {
-    display: none !important;
-}
-
-.side-panel-wrapper.left {
-    left: 0;
-}
-
-.side-panel-wrapper.right {
-    right: 0;
-}
-
-.side-tab {
-    width: 36px;
-    background: #ffb300;
-    color: white;
-    padding: 18px 2px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    position: absolute;
-    transition: all 0.3s ease;
-}
-
-.side-panel-wrapper.left .side-tab {
-    right: -36px;
-    border-radius: 0 14px 14px 0;
-    background: #0056ff;
-    /* 客服蓝色 */
-    box-shadow: 0 4px 15px rgba(0, 86, 255, 0.2);
-}
-
-.side-panel-wrapper.right .side-tab {
-    left: -36px;
-    border-radius: 14px 0 0 14px;
-    background: #ffb300;
-    /* 帮助黄色 */
-    box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);
-}
-
-.side-tab .tab-text {
-    writing-mode: vertical-lr;
-    font-size: 0.82rem;
-    font-weight: 800;
-    letter-spacing: 2px;
-}
-
-.side-tab .tab-icon {
-    font-size: 0.88rem;
-    transition: all 0.3s;
-}
-
-.side-drawer {
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    z-index: 3100;
-}
-
-.drawer-header {
-    background: #ffb300;
-    padding: 18px 15px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: white;
-}
-
-.header-icon-box {
-    width: 38px;
-    height: 38px;
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-}
-
-.header-text .main-title {
-    font-weight: 800;
-    font-size: 0.9rem;
-}
-
-.header-text .sub-title {
-    font-size: 0.65rem;
-    opacity: 0.9;
-}
-
-.drawer-content {
-    padding: 15px;
-    max-height: 75vh;
-    overflow-y: auto;
-}
-
-.help-img {
-    width: 100%;
-    height: auto;
-    display: block;
-    cursor: pointer;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-@media (min-width: 769px) {
-    .side-drawer {
-        width: 320px;
-        position: absolute;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        right: 45px;
-        top: 40%;
-        transform: translateY(-50%) translateX(15px);
-        border-radius: 16px;
+    const warnGlobal = document.getElementById('pay-warning-global');
+    if (warnGlobal) {
+        warnGlobal.classList.remove('d-none');
     }
 
-    .side-drawer.active {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(-50%) translateX(0);
+    const helpImgEl = document.querySelector('.help-img');
+    if (helpImgEl && I18N[currentLang].help_img) {
+        helpImgEl.src = I18N[currentLang].help_img;
+    }
+
+    const kmBtn = document.getElementById('lang-km');
+    const enBtn = document.getElementById('lang-en');
+    const zhBtn = document.getElementById('lang-zh');
+    if (kmBtn) kmBtn.classList.toggle('active', currentLang === 'km');
+    if (enBtn) enBtn.classList.toggle('active', currentLang === 'en');
+    if (zhBtn) zhBtn.classList.toggle('active', currentLang === 'zh');
+
+    const bankPill = document.querySelector('.bank-pill.active');
+    if (bankPill) updateHintText(bankPill.dataset.bank);
+
+    // 联动逻辑：如果当前已处于失效状态，切换语言时自动重新渲染失效提示 (V66.5-REACTIVE)
+    if (isExpired) {
+        handleExpired();
     }
 }
 
-@media (max-width: 768px) {
-    .side-panel-wrapper {
-        position: fixed;
-        z-index: 2800;
+function updateHintText(bankName) {
+    const hintEl = document.getElementById('scan-hint-text');
+    if (!hintEl) return;
+    const text = I18N[currentLang]['recom_use'].replace('{{bank}}', 'Bakong / KHQR');
+    hintEl.innerHTML = `<i class="fa-solid fa-mobile-screen-button me-1"></i> ${text}`;
+}
+
+function showToast(text) {
+    let toast = document.querySelector('.copy-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.className = 'copy-toast';
+        document.body.appendChild(toast);
+    }
+    toast.innerText = text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+window.copyText = function (id, btn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const text = el.innerText.replace('$', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(I18N[currentLang].copied || 'Copied!');
+        const targetBtn = btn || (event ? event.target : null);
+        if (targetBtn && targetBtn.tagName === 'BUTTON') {
+            const originalText = targetBtn.innerText;
+            targetBtn.innerText = I18N[currentLang].copied;
+            targetBtn.style.color = '#28a745';
+            setTimeout(() => {
+                targetBtn.innerText = originalText;
+                targetBtn.style.color = '';
+            }, 2000);
+        }
+    }).catch(err => console.error("Copy failed", err));
+};
+
+function updateTimerVisuals(remainingSeconds) {
+    const textEl = document.getElementById('timer-text');
+    if (!textEl) return;
+    if (remainingSeconds <= 0) {
+        textEl.textContent = "00:00";
+        return;
+    }
+    const m = Math.floor(remainingSeconds / 60);
+    const s = remainingSeconds % 60;
+    const t = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    textEl.textContent = t;
+}
+
+window.renderQrCode = function (qrData, bankName) {
+    const qrContainer = document.getElementById("qrcode");
+    if (!qrContainer || !qrData) return;
+
+    const tempDiv = document.createElement('div');
+    tempDiv.style.display = 'none';
+    document.body.appendChild(tempDiv);
+
+    new QRCode(tempDiv, {
+        text: qrData,
+        width: 200, height: 200,
+        colorDark: "#000000", colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+    });
+
+    const finalizeOnce = () => {
+        const source = tempDiv.querySelector('canvas') || tempDiv.querySelector('img');
+        if (!source) return;
+
+        const canvas = document.createElement('canvas');
+        const w = 220, h = 220;
+        canvas.width = w * 2; canvas.height = h * 2;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(2, 2);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(source, 10, 10, 200, 200);
+
+        const deliverToPage = () => {
+            const finalImg = new Image();
+            finalImg.style.width = '220px';
+            finalImg.style.borderRadius = '8px';
+            finalImg.src = canvas.toDataURL("image/png");
+            qrContainer.innerHTML = "";
+            qrContainer.appendChild(finalImg);
+            if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+        };
+
+        const logo = new Image();
+        logo.src = "assets/img/bank_logo/bakong_logo.png";
+        logo.onload = () => {
+            const lSize = 32, p = 3;
+            const lx = (w - lSize) / 2, ly = (h - lSize) / 2;
+            ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "#ED1C24"; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(lx - p, ly - p, lSize + p * 2, lSize + p * 2, 8);
+            else ctx.rect(lx - p, ly - p, lSize + p * 2, lSize + p * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.drawImage(logo, lx, ly, lSize, lSize);
+            deliverToPage();
+        };
+        logo.onerror = deliverToPage;
+    };
+
+    const t = setInterval(() => {
+        const qI = tempDiv.querySelector('img');
+        const qC = tempDiv.querySelector('canvas');
+        if ((qI && qI.complete) || qC) { clearInterval(t); finalizeOnce(); }
+    }, 20);
+};
+
+/**
+ * 智能设备探测：识别苹果移动端 (V66.5-OS-DETECT)
+ */
+function isAppleDevice() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+window.saveQrCode = async function () {
+    const ticketEl = document.querySelector(".qr-ticket-section");
+    const previewOverlay = document.getElementById("qr-preview-overlay");
+    const previewImg = document.getElementById("qr-preview-img");
+
+    if (!ticketEl || typeof html2canvas === 'undefined') return;
+
+    showToast(I18N[currentLang].assigning || "Processing...");
+
+    try {
+        ticketEl.classList.add("is-capturing");
+        const canvas = await html2canvas(ticketEl, {
+            scale: isAppleDevice() ? 3 : 2, // 苹果用高倍率方便长按，安卓用普通倍率加快速度
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false
+        });
+        ticketEl.classList.remove("is-capturing");
+        const dataUrl = canvas.toDataURL("image/png");
+
+        if (isAppleDevice()) {
+            // 苹果设备：弹出大图预览，引导用户长按保存
+            if (previewOverlay && previewImg) {
+                previewImg.src = dataUrl;
+                previewOverlay.classList.add("active");
+            }
+        } else {
+            // 安卓与电脑：直接触发浏览器下载
+            const config = document.getElementById('checkout-config').dataset;
+            const orderNo = config.merchantOrderNo || config.orderNo || 'ORDER';
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `KHQR_${orderNo}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(currentLang === 'zh' ? "保存成功" : "Save Success");
+        }
+
+    } catch (err) {
+        ticketEl.classList.remove("is-capturing");
+        showToast(currentLang === 'zh' ? "保存失败" : "Failed");
+    }
+};
+
+window.closeQrPreview = function () {
+    const previewOverlay = document.getElementById("qr-preview-overlay");
+    if (previewOverlay) previewOverlay.classList.remove("active");
+};
+
+window.togglePanel = function (panelId) {
+    const panels = ['contact-panel', 'help-panel'];
+    const overlay = document.getElementById('panel-overlay');
+    let anyOpen = false;
+    panels.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === panelId) {
+            if (el.classList.contains('active')) {
+                el.classList.remove('active');
+            } else {
+                el.classList.add('active');
+                anyOpen = true;
+            }
+        } else { el.classList.remove('active'); }
+    });
+    if (overlay) {
+        if (anyOpen) { overlay.classList.add('show'); document.body.classList.add('panel-open'); }
+        else { overlay.classList.remove('show'); document.body.classList.remove('panel-open'); }
+    }
+};
+
+window.closeAllPanels = function () {
+    ['contact-panel', 'help-panel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+    const overlay = document.getElementById('panel-overlay');
+    if (overlay) overlay.classList.remove('show');
+    document.body.classList.remove('panel-open');
+};
+
+/**
+ * 核心功能：数据渲染与注入 [V1.2.1-STATIC-SMART]
+ */
+function renderOrderData(data) {
+    const configEl = document.getElementById('checkout-config');
+    if (!configEl) return;
+
+    // 更新配置缓存
+    configEl.dataset.khqr = data.khqr_string || '';
+    configEl.dataset.orderNo = data.order_no || '';
+    configEl.dataset.merchantOrderNo = data.out_order_no || '';
+    configEl.dataset.accountName = data.account_name || '';
+    configEl.dataset.amount = data.real_amount || '0.00';
+    configEl.dataset.remainingSeconds = data.remaining_seconds || data.expire_in || 0;
+    configEl.dataset.bankName = data.bank_name || 'BAKONG';
+
+    // 渲染 UI 基础数据 (即使失效也展示)
+    if (document.getElementById('display-merchant-order-no')) document.getElementById('display-merchant-order-no').textContent = data.out_order_no || data.order_no || '';
+    if (document.getElementById('display-account-name')) document.getElementById('display-account-name').textContent = data.account_name || '';
+
+    // 渲染金额 (V66.5-ALIGN-FIX)
+    const amountVal = data.real_amount || data.amount || 0;
+    const amt = parseFloat(amountVal);
+    const parts = amt.toFixed(2).split('.');
+    if (document.getElementById('render-amt-int')) document.getElementById('render-amt-int').textContent = parts[0] + '.';
+    if (document.getElementById('render-amt-dec')) document.getElementById('render-amt-dec').textContent = parts[1];
+
+    // 1) 检查订单状态：只有未失效才继续渲染二维码和其它入口 [V66.5-SECURITY]
+    if (data.status === 'expired' || (data.remaining_seconds !== undefined && parseInt(data.remaining_seconds) <= 0)) {
+        handleExpired();
+        return;
     }
 
-    .side-panel-wrapper.left {
-        left: 0;
-        top: 40%;
+    // 动态入口控制：客服与帮助 (V66.5-CONFIG)
+    const contactPanel = document.getElementById('contact-panel');
+    const helpPanelTab = document.getElementById('help-panel-tab');
+
+    // 只有在配置了 support_link 时才开启客服入口
+    if (contactPanel) {
+        if (data.support_link && data.support_link.length > 5) {
+            contactPanel.style.display = 'block';
+            // 绑定跳转逻辑
+            const btn = document.getElementById('contact-us-btn');
+            if (btn) btn.onclick = () => window.safeOpen(data.support_link);
+        } else {
+            contactPanel.style.display = 'none';
+        }
     }
 
-    .side-panel-wrapper.right {
-        right: 0;
-        left: auto;
-        top: 40%;
+    // 听从 topup_hint 指令控制帮助面板
+    if (helpPanelTab) {
+        if (parseInt(data.topup_hint) === 1) {
+            helpPanelTab.style.display = 'block';
+        } else {
+            helpPanelTab.style.display = 'none';
+        }
     }
 
-    .side-drawer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100vw !important;
-        height: auto;
-        max-height: 80vh;
-        transform: translateY(100%);
-        transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
-        border-radius: 24px 24px 0 0 !important;
-        box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.3);
+    // 渲染二维码
+    const qrArea = document.getElementById('qr-display-area');
+    if (qrArea) qrArea.classList.remove('d-none');
+    window.renderQrCode(data.khqr_string, data.bank_name);
+
+    // 启动/更新倒计时
+    startTimer(parseInt(data.remaining_seconds || data.expire_in || 0));
+}
+
+let activeTimerInterval = null;
+function startTimer(sec) {
+    if (activeTimerInterval) clearInterval(activeTimerInterval);
+    if (isNaN(sec) || sec <= 0) {
+        updateTimerVisuals(0);
+        return;
+    }
+    const expireTime = Date.now() + (sec * 1000);
+    const update = () => {
+        const diff = expireTime - Date.now();
+        if (diff <= 0) {
+            clearInterval(activeTimerInterval);
+            updateTimerVisuals(0);
+            window.location.reload();
+            return;
+        }
+        updateTimerVisuals(Math.floor(diff / 1000));
+    };
+    activeTimerInterval = setInterval(update, 1000);
+    update();
+}
+
+/**
+ * 智能数据加载 [V1.2.1-STATIC-SMART]
+ */
+async function loadOrderData() {
+    const configEl = document.getElementById('checkout-config');
+    if (!configEl) return;
+
+    // 1) 优先检查 HTML 是否已经带有数据（后端注入模式）
+    if (configEl.dataset.khqr && configEl.dataset.khqr.trim().length > 10) {
+        renderOrderData(configEl.dataset);
+        startPolling();
+        return;
     }
 
-    .side-drawer.active {
-        transform: translateY(0);
-    }
-}
-
-/* ==========================================================================
-   图 3：工业级票据重构样式 (V25.0)
-   ========================================================================== */
-.khqr-header {
-    background: #E31B23;
-    height: 54px;
-    /* 增高页眉，更显大气 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    border-radius: 20px 20px 0 0;
-    /* 匹配大卡片的圆角 */
-}
-
-/* 官方标志性的切角效果 */
-/* 官方灵魂凸角：回归精致小三角 [V46.0] */
-.khqr-header::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: -1px;
-    width: 32px;
-    /* 回归用户认可的精致跨度 */
-    height: 18px;
-    /* 适中的下垂深度 */
-    background: #E31B23;
-    /* 核心：绘制一个连接右边缘的利落三角 */
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-}
-
-.khqr-header img {
-    height: 18px;
-    width: auto;
-    display: block;
-    margin: 0 auto;
-    /* 取消 invert(1)，因为 SVG 源码已经是 fill="white" */
-}
-
-.ticket-amount-wrapper {
-    text-align: left !important;
-    padding: 6px 0 2px 16px;
-    /* 持续增加左侧缩进，确保位移感充足 */
-    width: 100%;
-}
-
-.ticket-amount-val {
-    display: inline-block;
-    font-size: 2.1rem;
-    font-weight: 800;
-    color: #1a2b4b;
-    line-height: 1;
-}
-
-.ticket-amount-cur {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #1a2b4b;
-    margin-left: 5px;
-    text-transform: uppercase;
-}
-
-.ticket-divider {
-    width: 100%;
-    margin: 16px 0;
-    border-top: 2px dashed #cbd5e1;
-    /* 颜色略微加深，更清晰 */
-    height: 1px;
-    opacity: 0.6;
-}
-
-.qr-bottom-bar {
-    display: flex;
-    justify-content: space-between;
-    /* 同步为两端对齐 */
-    align-items: center;
-    background: #f8fafc;
-    /* 浅灰色票据底座 */
-    padding: 12px 20px;
-    border-top: 1px dashed #e2e8f0;
-    /* 使用虚线分割 */
-    width: 100%;
-    margin-top: 0;
-}
-
-.qr-bottom-left,
-.qr-bottom-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.qr-bottom-left {
-    color: #E31B23;
-}
-
-.qr-bottom-right {
-    color: #1a2b4b;
-}
-
-.qr-divider {
-    height: 14px;
-    width: 1px;
-    background: #e2e8f0;
-}
-
-/* 银行图标网格复原 [V27.5] */
-.supported-banks-grid-compact {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 4px;
-    padding: 6px;
-    background: rgba(0, 0, 0, 0.012);
-    border-radius: 10px;
-    margin-top: 2px;
-}
-
-.bank-grid-item-mini {
-    background: white;
-    border-radius: 6px;
-    padding: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    border: 1px solid #f0f0f0;
-    aspect-ratio: 1/1;
-}
-
-.bank-grid-item-mini img {
-    max-width: 90%;
-    max-height: 90%;
-    object-fit: contain;
-}
-
-/* ==========================================================================
-   二维码扫码感增强 (V26.5)
-   ========================================================================== */
-.qr-scanner-wrapper {
-    position: relative;
-    width: 240px;
-    height: 240px;
-    margin: 10px auto;
-    background: #fff;
-    padding: 0px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* 对焦角标 */
-.qr-scanner-wrapper::before,
-.qr-scanner-wrapper::after,
-.qr-scanner-wrapper .corner-tl,
-.qr-scanner-wrapper .corner-tr,
-.qr-scanner-wrapper .corner-bl,
-.qr-scanner-wrapper .corner-br {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 3px solid #E31B23;
-}
-
-.qr-scanner-wrapper .corner-tl {
-    top: -6px;
-    left: -6px;
-    border-right: none;
-    border-bottom: none;
-}
-
-.qr-scanner-wrapper .corner-tr {
-    top: -6px;
-    right: -6px;
-    border-left: none;
-    border-bottom: none;
-}
-
-.qr-scanner-wrapper .corner-bl {
-    bottom: -6px;
-    left: -6px;
-    border-right: none;
-    border-top: none;
-}
-
-.qr-scanner-wrapper .corner-br {
-    bottom: -6px;
-    right: -6px;
-    border-left: none;
-    border-top: none;
-}
-
-/* 激光扫描线 */
-.qr-scan-line {
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    height: 3px;
-    background: linear-gradient(to right, transparent, #E31B23, transparent);
-    z-index: 10;
-    box-shadow: 0 0 8px rgba(227, 27, 35, 0.6);
-    animation: qrScanMove 2.5s ease-in-out infinite;
-}
-
-/* [V65.8] 截屏保存模式：隐藏扫描线及动态干扰 */
-.is-capturing .qr-scan-line {
-    display: none !important;
-}
-
-.is-capturing .qr-scanner-wrapper {
-    box-shadow: none !important;
-}
-
-@keyframes qrScanMove {
-
-    0%,
-    100% {
-        top: 10px;
-        opacity: 0;
+    // 2) 静态模式：如果 HTML 没数据，尝试从接口抓取
+    if (!currentOrderNo || !currentToken) {
+        console.warn("Static Mode: Missing order_no or token in URL.");
+        return;
     }
 
-    5%,
-    95% {
-        opacity: 1;
-    }
-
-    50% {
-        top: 230px;
-    }
-}
-
-/* 微弱跳动动画给红色圆点 */
-@keyframes pulse {
-    0% {
-        transform: scale(0.95);
-        opacity: 0.8;
-    }
-
-    50% {
-        transform: scale(1.1);
-        opacity: 1;
-    }
-
-    100% {
-        transform: scale(0.95);
-        opacity: 0.8;
-    }
-}
-
-/* 银行认证底部样式 (V30.0) */
-.supported-banks-footer {
-    color: #10b981 !important;
-    /* 翡翠绿认证色 */
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 4px;
-    margin-bottom: 2px;
-}
-
-.supported-banks-footer i {
-    font-size: 14px;
-}
-
-/* 截屏捕捉状态优化 (V32.1) - 保存时隐藏动态/装饰元素 */
-.qr-ticket-section.is-capturing .khqr-header::after,
-.qr-ticket-section.is-capturing .qr-bottom-left {
-    display: none !important;
-}
-
-/* 捕捉时让商户名居中显示 */
-.qr-ticket-section.is-capturing .qr-bottom-right {
-    flex: 1;
-    justify-content: center;
-}
-
-
-
-/* 全局安全提醒样式 (V34.0) */
-.pay-warning-container {
-    background-color: #fffbf0 !important;
-    border: 1px solid #ffe58f !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    margin: 10px 15px 20px 15px !important;
-    font-size: 13px !important;
-    color: #856404 !important;
-    line-height: 1.6 !important;
-    box-shadow: 0 2px 8px rgba(133, 100, 4, 0.05) !important;
-}
-
-.pay-warning-container ol {
-    padding-left: 18px !important;
-    margin-bottom: 0 !important;
-}
-
-.pay-warning-container li {
-    margin-bottom: 8px !important;
-    font-weight: 500 !important;
-}
-
-.pay-warning-container li:last-child {
-    margin-bottom: 0 !important;
-}
-
-/* -------------------------------------------------- */
-
-/* [V43.0] 工业级：长方形慢速流光倒计时系统 */
-@keyframes spin-logic {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
+    try {
+        console.log("Static Mode: Fetching order details from " + API_BASE + "...");
+        const res = await fetch(`${API_BASE}api/get_order_details.php?order_no=${currentOrderNo}&token=${currentToken}`);
+        const json = await res.json();
+        if (json.code === 200 && json.data) {
+            // [适配接口返回字段]
+            const d = json.data;
+            // 补全倒计时计算
+            if (d.expire_at && !d.remaining_seconds) {
+                const exp = new Date(d.expire_at.replace(/-/g, "/")).getTime();
+                const now = d.server_time ? new Date(d.server_time.replace(/-/g, "/")).getTime() : Date.now();
+                d.remaining_seconds = Math.max(0, Math.floor((exp - now) / 1000));
+            }
+            renderOrderData(d);
+            startPolling();
+        } else {
+            console.error("Fetch order failed:", json.msg);
+        }
+    } catch (e) {
+        console.error("Initialization error:", e);
     }
 }
 
-.timer-rect-wrap {
-    position: relative;
-    width: 72px;
-    height: 34px;
-    border-radius: 8px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.03);
-    margin-right: 4px;
-    flex-shrink: 0;
+function startPolling() {
+    const poller = setInterval(async () => {
+        if (!currentOrderNo || !currentToken) return;
+        try {
+            const res = await fetch(`${API_BASE}api/check_order.php?order_no=${currentOrderNo}&token=${currentToken}`);
+            const json = await res.json();
+            if (json.status === 'paid') {
+                clearInterval(poller);
+                handleSuccess(json.return_url);
+            }
+        } catch (e) { }
+    }, 4000);
 }
 
-/* 旋转流光层：4秒超慢速 */
-.timer-rect-wrap::before {
-    content: '';
-    position: absolute;
-    width: 150px;
-    height: 150px;
-    background: conic-gradient(transparent 65%,
-            #E31B23 85%,
-            #E31B23 95%,
-            transparent 100%);
-    animation: spin-logic 4s linear infinite;
-    z-index: 1;
+function handleSuccess(retUrl) {
+    let secondsLeft = 3;
+    window.closeSmartPage = function () {
+        if (typeof WeixinJSBridge !== 'undefined') { WeixinJSBridge.call('closeWindow'); }
+        else if (typeof AlipayJSBridge !== 'undefined') { AlipayJSBridge.call('closeWebview'); }
+        else { window.close(); setTimeout(() => { window.location.href = 'about:blank'; }, 300); }
+    };
+    document.querySelector('.checkout-container').innerHTML = `
+        <div class="payment-card shadow-lg text-center p-5 d-flex flex-column justify-content-center align-items-center" style="min-height: 480px; border-radius: 20px;">
+            <i class="fa-solid fa-circle-check text-success display-1 mb-4" style="font-size: 90px; color: #198754; animation: scaleIn 0.4s ease-out;"></i>
+            <h2 class="fw-bold mb-3" style="color: #212529;">${I18N[currentLang].pay_success}</h2>
+            <p class="text-muted small mb-4" style="font-size: 15px;">${I18N[currentLang].auto_close.replace('{{sec}}', `<span id="close-timer-sec" class="fw-bold text-dark">${secondsLeft}</span>`)}</p>
+            ${!retUrl ? `<button class="btn btn-primary px-4 py-3 rounded-pill shadow-sm mt-3" style="width: 100%; max-width: 280px; font-size: 16px;" onclick="window.closeSmartPage()">${I18N[currentLang].close_page}</button>` : ''}
+        </div>
+        <style>@keyframes scaleIn { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }</style>
+    `;
+    const countdown = setInterval(() => {
+        secondsLeft--;
+        const el = document.getElementById('close-timer-sec');
+        if (el) el.innerText = secondsLeft;
+        if (secondsLeft <= 0) {
+            clearInterval(countdown);
+            if (retUrl) window.location.replace(retUrl);
+            else closeSmartPage();
+        }
+    }, 1000);
 }
 
-/* 内部遮罩层：透出底部的流光 */
-.timer-rect-inner {
-    position: absolute;
-    inset: 2px;
-    /* 边框厚度 */
-    background: #f8fafc;
-    /* 匹配底座颜色 */
-    border-radius: 6.5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
+/**
+ * 处理订单失效 [V66.5-SECURITY]
+ */
+function handleExpired() {
+    isExpired = true; // 锁定失效状态
+    if (activeTimerInterval) clearInterval(activeTimerInterval);
+    updateTimerVisuals(0);
+
+    const qrArea = document.getElementById('qr-display-area');
+    const qrFooter = document.getElementById('qr-footer-bar');
+    const actionGroup = document.querySelector('.qr-action-group');
+
+    if (qrArea) {
+        qrArea.classList.remove('d-none');
+        qrArea.innerHTML = `
+            <div class="expired-mask d-flex flex-column justify-content-center align-items-center" style="min-height: 240px; background: #f8f9fa; border-radius: 12px; border: 2px dashed #dee2e6;">
+                <i class="fa-solid fa-hourglass-end text-muted mb-3" style="font-size: 48px;"></i>
+                <h5 class="fw-bold text-secondary">${(I18N[currentLang] && I18N[currentLang].expired) ? I18N[currentLang].expired : "订单已失效"}</h5>
+                <p class="small text-muted mb-0">${(I18N[currentLang] && I18N[currentLang].expired_hint) ? I18N[currentLang].expired_hint : "请返回商户重新发起支付"}</p>
+            </div>
+        `;
+    }
+    // 失效后彻底隐藏计时器及底栏信息，避免干扰 [V66.5-CLEAN]
+    if (qrFooter) qrFooter.style.display = 'none';
+    if (actionGroup) actionGroup.style.display = 'none';
+    if (paymentInfo) paymentInfo.style.opacity = '0.4'; // 降低辅助信息透明度
 }
 
-.qr-bottom-timer {
-    font-size: 13px !important;
-    font-weight: 900 !important;
-    color: #E31B23 !important;
-    font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
-    letter-spacing: 0.5px;
-    z-index: 3;
-    position: relative;
-    top: -0.2px;
-}
-
-/* [V44.0] 金额小数位差异化样式 */
-.ticket-amount-decimal {
-    font-size: 1.1rem !important;
-    font-weight: 700 !important;
-    margin-left: 1px;
-    vertical-align: baseline;
-    opacity: 0.9;
-}
+document.addEventListener('DOMContentLoaded', function () {
+    updateInterface();
+    loadOrderData(); // 启动异步初始化 [V1.2.1-STATIC-SMART]
+});
