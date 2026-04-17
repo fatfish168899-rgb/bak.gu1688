@@ -871,20 +871,7 @@ body.panel-open .side-tab {
     justify-content: center;
 }
 
-/* 保存按钮高级配色 (V33.0) */
-.save-qr-btn {
-    background-color: #1e293b !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15) !important;
-}
 
-.save-qr-btn:hover {
-    background-color: #0f172a !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 15px rgba(30, 41, 59, 0.2) !important;
-}
 
 /* 全局安全提醒样式 (V34.0) */
 .pay-warning-container {
