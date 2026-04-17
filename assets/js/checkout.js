@@ -1,5 +1,6 @@
-/* PayBank 1:1 Local Mirror JS (CF Optimized)
-* Version: 65.0 (Mirror Edition)
+/**
+* PayBank 1:1 Local Mirror JS (CF Optimized)
+* Version: 65.4 (Enterprise Hardened Edition)
 */
 
 const I18N = {
@@ -26,7 +27,11 @@ const I18N = {
         warn_2: "ជូនដំណឹងម្ដងទៀត សូមកុំកត់ត្រាលេខគណនី ពីព្រោះវាអាចផ្លាស់ប្តូរបានជានិច្ច",
         warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ",
         redirect_hint: "ទំព័រនឹងលោតទៅកាន់គេហទំព័រដើមវិញក្នុងរយៈពេល {{sec}} វិនាទី...",
-        close_hint: "ទំព័រនឹងបិទដោយស្វ័យប្រវត្តក្នុងរយៈពេល {{sec}} វិនាទី..."
+        close_hint: "ទំព័រនឹងបិទដោយស្វ័យប្រវត្តក្នុងរយៈពេល {{sec}} វិនាទី...",
+        contact_us: "ទាក់ទងមកយើង",
+        help_guide: "មគ្គុទ្ទេសក៍ជំនួយ",
+        help: "សេចក្តីណែនាំអំពីការបញ្ចូលថ្ម",
+        click_close: "ចុចលើរូបភាពដើម្បីដកថយ"
     },
     en: {
         timer_hint: "Please pay within this time, system will auto-credit",
@@ -51,7 +56,11 @@ const I18N = {
         warn_2: "Do not save this account number. Details may change.",
         warn_3: "Pay exactly as shown for auto-credit.",
         redirect_hint: "Redirecting to merchant in {{sec}} seconds...",
-        close_hint: "Page will close automatically in {{sec}} seconds..."
+        close_hint: "Page will close automatically in {{sec}} seconds...",
+        contact_us: "Contact Us",
+        help_guide: "Help Guide",
+        help: "Top-up Hint",
+        click_close: "Click image to close"
     },
     zh: {
         timer_hint: "请在规定时间内完成支付",
@@ -76,13 +85,21 @@ const I18N = {
         warn_2: "请勿记录此收款账号，账号会不定期更换。",
         warn_3: "请及时支付且仅支付显示的准确金额。",
         redirect_hint: "页面将在 {{sec}} 秒内自动跳转...",
-        close_hint: "页面将在 {{sec}} 秒内自动关闭..."
+        close_hint: "页面将在 {{sec}} 秒内自动关闭...",
+        contact_us: "联系客服",
+        help_guide: "帮助指引",
+        help: "充值说明",
+        click_close: "点击图片可收回"
     }
 };
 
 function getDetectLanguage() {
-    const saved = localStorage.getItem('paybank_lang');
-    if (saved) return saved;
+    try {
+        const saved = localStorage.getItem('paybank_lang');
+        if (saved) return saved;
+    } catch (e) {
+        console.warn("localStorage access denied");
+    }
     const browserLang = (navigator.language || 'en').toLowerCase();
     if (browserLang.startsWith('zh')) return 'zh';
     if (browserLang.includes('km') || browserLang.includes('kh')) return 'km';
@@ -92,12 +109,12 @@ function getDetectLanguage() {
 let currentLang = getDetectLanguage();
 const urlParams = new URLSearchParams(window.location.search);
 const currentToken = urlParams.get('token') || '';
-let statusPoller = null; // 全局轮询跟踪器
-let redirectUrl = ''; // [NEW] 全局跳转地址同步
+let statusPoller = null; 
+let redirectUrl = ''; 
 
 window.setLanguage = function (lang) {
     currentLang = lang;
-    localStorage.setItem('paybank_lang', lang);
+    try { localStorage.setItem('paybank_lang', lang); } catch(e) {}
     updateInterface();
 }
 
@@ -112,9 +129,13 @@ function updateInterface() {
         const btn = document.getElementById('lang-' + l);
         if (btn) btn.classList.toggle('active', currentLang === l);
     });
+
+    const helpImg = document.querySelector('.help-img');
+    if (helpImg) {
+        helpImg.src = `assets/img/topup_hint_${currentLang}.jpg`;
+    }
 }
 
-// 统一 Logo 路径
 const LOGO_PATH = "assets/img/bank_logo/bakong_logo.png";
 
 window.renderQrCode = function (qrData) {
@@ -123,7 +144,14 @@ window.renderQrCode = function (qrData) {
 
     const tempDiv = document.createElement('div');
     tempDiv.style.display = 'none';
+    tempDiv.id = 'temp-qr-gen-' + Date.now();
     document.body.appendChild(tempDiv);
+
+    // 调用第三方 QRCode 库
+    if (typeof QRCode === 'undefined') {
+        console.error("QRCode library not loaded");
+        return;
+    }
 
     new QRCode(tempDiv, {
         text: qrData,
@@ -141,10 +169,12 @@ window.renderQrCode = function (qrData) {
         const ctx = canvas.getContext('2d');
         ctx.scale(2, 2);
 
+        // 绘制背景与主体二维码
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, 220, 220);
         ctx.drawImage(source, 20, 20, 180, 180);
 
+        // 绘制中间 Logo
         const logo = new Image();
         logo.src = LOGO_PATH;
         logo.onload = () => {
@@ -156,20 +186,33 @@ window.renderQrCode = function (qrData) {
             ctx.fill();
             ctx.drawImage(logo, lx, ly, lSize, lSize);
 
+            // 输出最终图像
             const finalImg = new Image();
             finalImg.style.width = '220px'; finalImg.style.borderRadius = '8px';
             finalImg.src = canvas.toDataURL("image/png");
             qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
-            document.body.removeChild(tempDiv);
+            if (tempDiv.parentNode) document.body.removeChild(tempDiv);
         };
-        logo.onerror = () => { document.body.removeChild(tempDiv); };
+        logo.onerror = () => { 
+             // Logo 加载失败也输出二维码
+             const finalImg = new Image();
+             finalImg.style.width = '220px'; finalImg.src = canvas.toDataURL("image/png");
+             qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
+             if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+        };
     };
 
     const t = setInterval(() => {
-        if (tempDiv.querySelector('canvas') || (tempDiv.querySelector('img') && tempDiv.querySelector('img').complete)) {
-            clearInterval(t); finalize();
+        const scanImg = tempDiv.querySelector('img');
+        const isComplete = scanImg && scanImg.complete && scanImg.naturalWidth > 0;
+        const target = tempDiv.querySelector('canvas') || (isComplete ? scanImg : null);
+        
+        if (target) {
+            clearInterval(t); 
+            finalize();
         }
     }, 50);
+    setTimeout(() => clearInterval(t), 5000);
 };
 
 window.saveQrCode = function () {
@@ -183,41 +226,57 @@ window.saveQrCode = function () {
     document.body.removeChild(link);
 };
 
-// 1:1 数据应用逻辑
 function applyPaymentData(data) {
-    // 金额分拆 (1:1 格式化)
-    const val = parseFloat(data.real_amount).toFixed(2);
+    if (!data) return;
+    const val = parseFloat(data.real_amount || 0).toFixed(2);
     const parts = val.split('.');
-    document.getElementById('render-amt-int').textContent = parts[0];
-    document.getElementById('render-amt-dec').textContent = '.' + parts[1];
+    
+    const intEl = document.getElementById('render-amt-int');
+    const decEl = document.getElementById('render-amt-dec');
+    if (intEl) intEl.textContent = parts[0];
+    if (decEl) decEl.textContent = '.' + (parts[1] || '00');
 
-    // 其他信息对齐
-    document.getElementById('display-account-name').textContent = data.account_name || '--';
-    document.getElementById('display-merchant-order-no').textContent = data.out_order_no || data.order_no;
+    const nameEl = document.getElementById('display-account-name');
+    const orderEl = document.getElementById('display-merchant-order-no');
+    if (nameEl) nameEl.textContent = data.account_name || '--';
+    if (orderEl) orderEl.textContent = data.out_order_no || data.order_no || '--';
 
-    window.renderQrCode(data.khqr_string || data.qr_data);
+    window.renderQrCode(data.khqr_string || data.qr_data || '');
 }
 
 window.initPage = async function () {
     const up = new URLSearchParams(window.location.search);
     const ono = up.get('order_no') || up.get('trade_no');
-    if (!ono) return;
+    
+    if (!ono) {
+        showErrorMask('Order Missing', 'Order number is required.');
+        return;
+    }
 
     try {
         const res = await fetch(`${window.API_BASE}api/get_order_details.php?order_no=${ono}&token=${currentToken}`);
+        if (!res.ok) throw new Error("Network response was not ok");
         const json = await res.json();
 
-        // [FIX] 增强拦截：参数错误或订单不存在 (同步本地 die() 逻辑)
         if (json.code !== 200) {
             showErrorMask(json.msg || 'Access Denied', 'Invalid or missing security token.');
             return;
         }
 
         const data = json.data;
-        document.getElementById('checkout-config').dataset.orderNo = data.order_no;
-        redirectUrl = data.return_url || ''; // 同步初始回传地址
+        const cfg = document.getElementById('checkout-config');
+        if (cfg) cfg.dataset.orderNo = data.order_no;
+        redirectUrl = data.return_url || ''; 
 
-        // 倒计时核心计算 (V65.1：首屏拦截逻辑)
+        if (data.support_link) {
+            const contactPanel = document.getElementById('contact-panel');
+            const contactBtn = document.getElementById('btn-contact-us');
+            if (contactPanel && contactBtn) {
+                contactPanel.style.display = 'flex';
+                contactBtn.onclick = () => safeOpen(data.support_link);
+            }
+        }
+
         let remain = 0;
         if (data.expire_at && data.server_time) {
             const exp = new Date(data.expire_at.replace(/-/g, '/')).getTime();
@@ -229,10 +288,9 @@ window.initPage = async function () {
             applyPaymentData(data);
             startPolling(ono);
             startCountdown(remain);
-            // [FIX] 数据准备就绪后，渐显界面
-            document.querySelector('.checkout-container').style.opacity = '1';
+            const container = document.querySelector('.checkout-container');
+            if (container) container.style.opacity = '1';
         } else {
-            // 已超时：直接拦截渲染，弹出遮罩
             showExpiryMask();
         }
 
@@ -243,12 +301,14 @@ window.initPage = async function () {
 };
 
 function startPolling(ono) {
+    if (statusPoller) clearInterval(statusPoller); 
     statusPoller = setInterval(async () => {
         try {
             const res = await fetch(`${window.API_BASE}api/check_order.php?order_no=${ono}&token=${currentToken}`);
+            if (!res.ok) return;
             const json = await res.json();
             if (json.status === 'paid') {
-                if (json.return_url) redirectUrl = json.return_url; // 轮询中同步最新地址
+                if (json.return_url) redirectUrl = json.url || json.return_url; 
                 clearInterval(statusPoller);
                 showSuccessMask();
             }
@@ -280,13 +340,13 @@ function showSuccessMask() {
 
     mask.style.display = 'flex';
 
-    // [FIX] 1:1 倒计时跳转逻辑
     let sec = 3;
     const hintEl = document.getElementById('success-hint');
     const update = () => {
+        const langPack = I18N[currentLang] || I18N.en;
         const textKey = redirectUrl ? 'redirect_hint' : 'close_hint';
-        if (hintEl && I18N[currentLang][textKey]) {
-            hintEl.innerText = I18N[currentLang][textKey].replace('{{sec}}', sec);
+        if (hintEl && langPack[textKey]) {
+            hintEl.innerText = langPack[textKey].replace('{{sec}}', sec);
         }
     };
 
@@ -302,56 +362,79 @@ function showSuccessMask() {
     }, 1000);
 }
 
-// [FIX] 处理最终跳转或关闭
 function handleRedirection() {
     if (redirectUrl && redirectUrl.length > 5) {
         window.location.replace(redirectUrl);
     } else {
-        // [FIX] 针对移动端环境的多种尝试
         if (typeof WeixinJSBridge !== 'undefined') { WeixinJSBridge.call('closeWindow'); }
         else if (typeof AlipayJSBridge !== 'undefined') { AlipayJSBridge.call('closeWebview'); }
         else {
             window.close();
-            // 兜底：如果浏览器拦截了关闭，则跳转到空白页
             setTimeout(() => { window.location.href = 'about:blank'; }, 500);
         }
     }
 }
 
-// [NEW] 处理报错显示 (同步本地 die())
+window.togglePanel = function(id) {
+    const el = document.getElementById(id);
+    const overlay = document.getElementById('panel-overlay');
+    if (!el) return;
+    
+    const isActive = el.classList.contains('active');
+    closeAllPanels(); 
+    
+    if (!isActive) {
+        el.classList.add('active');
+        if (overlay) overlay.classList.add('show');
+        document.body.classList.add('panel-open');
+    }
+};
+
+window.closeAllPanels = function() {
+    document.querySelectorAll('.side-drawer').forEach(d => d.classList.remove('active'));
+    const overlay = document.getElementById('panel-overlay');
+    if (overlay) overlay.classList.remove('show');
+    document.body.classList.remove('panel-open');
+};
+
+window.safeOpen = function(url) {
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 function showErrorMask(title, desc) {
     if (statusPoller) clearInterval(statusPoller);
     const mask = document.getElementById('mask-error');
     if (mask) {
-        document.getElementById('error-title').innerText = title;
-        document.getElementById('error-desc').innerText = desc;
+        const titleEl = document.getElementById('error-title');
+        const descEl = document.getElementById('error-desc');
+        if (titleEl) titleEl.innerText = title;
+        if (descEl) descEl.innerText = desc;
         mask.style.display = 'flex';
-        // 确保容器可见以显示遮罩
-        document.querySelector('.checkout-container').style.opacity = '1';
+        const container = document.querySelector('.checkout-container');
+        if (container) container.style.opacity = '1';
     }
 }
 
 function showExpiryMask() {
-    // 1. 彻底停止所有后台活动 (V65.0)
     if (statusPoller) clearInterval(statusPoller);
-
-    // 2. 显示专门的过期遮罩
     const mask = document.getElementById('mask-expiry');
     if (mask) {
-        // 同步 1:1 过期描述文案
         const descEl = mask.querySelector('p');
-        if (descEl && I18N[currentLang].order_expired_desc) {
-            descEl.innerHTML = I18N[currentLang].order_expired_desc;
+        const lp = I18N[currentLang] || I18N.en;
+        if (descEl && lp.order_expired_desc) {
+            descEl.innerHTML = lp.order_expired_desc;
         }
         mask.style.display = 'flex';
-        // 确保容器可见以显示遮罩
-        document.querySelector('.checkout-container').style.opacity = '1';
+        const container = document.querySelector('.checkout-container');
+        if (container) container.style.opacity = '1';
     } else {
-        // 退而求其次显示成功遮罩并修改文案
         const successMask = document.getElementById('mask-success');
         if (successMask) {
             successMask.style.display = 'flex';
-            successMask.querySelector('h2').innerText = I18N[currentLang].order_expired;
+            const lp = I18N[currentLang] || I18N.en;
+            const h2 = successMask.querySelector('h2');
+            if (h2) h2.innerText = lp.order_expired;
         }
     }
 }
