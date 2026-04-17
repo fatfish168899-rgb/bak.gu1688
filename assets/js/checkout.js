@@ -1,7 +1,7 @@
 /**
  * PayBank Checkout Logic
- * Version: 1.2.2 [V68.1 Fusion]
- * [FUSION] Merging Production Engine 1.2.1 with New UI Architecture
+ * Version: 1.2.3 [V68.2 FIXED]
+ * [DEFINITIVE] Fixed Early Return Bug & ID Mappings
  */
 
 const I18N = {
@@ -36,7 +36,7 @@ const I18N = {
         contact_us: "ទាក់ទងមកយើង",
         help_guide: "ការណែនាំ",
         click_close: "ចុចលើរូបភាពដើម្បីបិទ",
-        help_img: "/assets/img/topup_hint_km.jpg?v=1.0",
+        help_img: "assets/img/topup_hint_km.jpg?v=1.0",
         merchant_ref: "លេខយោងអាជីវករ",
         supported_banks_hint: "គាំទ្រគ្រប់ភ្នាក់ងារធនាគារ KHQR ខាងលើ",
         supported_banks_footer: "គាំទ្រគ្រប់ភ្នាក់ងារធនាគារ KHQR ខាងលើ",
@@ -75,7 +75,7 @@ const I18N = {
         contact_us: "Contact Us",
         help_guide: "Help Guide",
         click_close: "Click to close",
-        help_img: "/assets/img/topup_hint_en.jpg?v=1.0",
+        help_img: "assets/img/topup_hint_en.jpg?v=1.0",
         merchant_ref: "Merchant Ref",
         supported_banks_hint: "Supports all the above KHQR banks",
         supported_banks_footer: "Supports all the above KHQR banks",
@@ -114,7 +114,7 @@ const I18N = {
         contact_us: "联系我们",
         help_guide: "帮助指引",
         click_close: "点击图片可收回",
-        help_img: "/assets/img/topup_hint_zh.jpg?v=1.0",
+        help_img: "assets/img/topup_hint_zh.jpg?v=1.0",
         merchant_ref: "商户单号",
         supported_banks_hint: "支持以上所有 KHQR 银行",
         supported_banks_footer: "支持以上所有 KHQR 银行",
@@ -146,12 +146,6 @@ window.setLanguage = function (lang) {
     updateInterface();
 }
 
-window.safeOpen = function (url) {
-    if (!url) return;
-    const win = window.open(url, '_blank');
-    if (!win || win.closed || typeof win.closed === 'undefined') { window.location.href = url; }
-}
-
 const urlParams = new URLSearchParams(window.location.search);
 const currentToken = urlParams.get('token') || '';
 
@@ -164,19 +158,15 @@ function updateInterface() {
     const helpImgEl = document.querySelector('.help-img');
     if (helpImgEl && I18N[currentLang].help_img) { helpImgEl.src = I18N[currentLang].help_img; }
     
-    // 保持与旧版 JS 逻辑一致的语言按钮激活态
     document.getElementById('lang-km')?.classList.toggle('active', currentLang === 'km');
     document.getElementById('lang-en')?.classList.toggle('active', currentLang === 'en');
     document.getElementById('lang-zh')?.classList.toggle('active', currentLang === 'zh');
     
-    updateHintText('Bakong');
-}
-
-function updateHintText(bankName) {
     const hintEl = document.getElementById('scan-hint-text');
-    if (!hintEl) return;
-    const text = I18N[currentLang]['recom_use'].replace('{{bank}}', 'Bakong / KHQR');
-    hintEl.innerHTML = `<i class="fa-solid fa-mobile-screen-button me-1"></i> ${text}`;
+    if (hintEl) {
+        const text = I18N[currentLang]['recom_use'].replace('{{bank}}', 'Bakong / KHQR');
+        hintEl.innerHTML = `<i class="fa-solid fa-mobile-screen-button me-1"></i> ${text}`;
+    }
 }
 
 function showToast(text) {
@@ -186,8 +176,7 @@ function showToast(text) {
         toast.className = 'copy-toast';
         document.body.appendChild(toast);
     }
-    toast.innerText = text;
-    toast.classList.add('show');
+    toast.innerText = text; toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 1500);
 }
 
@@ -208,19 +197,11 @@ window.copyText = function (id, btn) {
 };
 
 function updateTimerVisuals(remainingSeconds) {
-    const dashArray = 100;
-    const strokeEl = document.getElementById('timer-stroke');
     const textEl = document.getElementById('timer-text');
-    const qrTextEl = document.getElementById('qr-time-text');
-    if (strokeEl) {
-        const offset = (remainingSeconds / (10 * 60)) * dashArray;
-        strokeEl.setAttribute('stroke-dasharray', `${offset}, 100`);
-    }
     const m = Math.floor(remainingSeconds / 60);
     const s = remainingSeconds % 60;
     const t = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     if (textEl) textEl.textContent = t;
-    if (qrTextEl) qrTextEl.textContent = t;
 }
 
 window.renderQrCode = function (qrData) {
@@ -276,8 +257,8 @@ window.renderQrCode = function (qrData) {
 window.saveQrCode = async function () {
     const ticketEl = document.querySelector(".qr-ticket-section");
     if (!ticketEl || typeof html2canvas === 'undefined') return;
-    const config = document.getElementById('checkout-config').dataset;
-    const orderNo = config.orderNo || 'ORDER';
+    const config = document.getElementById('checkout-config')?.dataset || {};
+    const orderNo = config.merchantOrderNo || 'ORDER';
     showToast(I18N[currentLang].assigning || "Processing...");
     try {
         ticketEl.classList.add("is-capturing");
@@ -289,8 +270,7 @@ window.saveQrCode = async function () {
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
         showToast(currentLang === 'zh' ? "保存成功" : "Success");
     } catch (err) {
-        ticketEl.classList.remove("is-capturing");
-        showToast("Save Failed");
+        ticketEl.classList.remove("is-capturing"); showToast("Save Failed");
     }
 };
 
@@ -313,88 +293,59 @@ window.closeAllPanels = function () {
     document.body.classList.remove('panel-open');
 };
 
-function hydrateFromEmbeddedKhqrIfAny() {
+function hydrateFromEmbeddedData() {
     const configEl = document.getElementById('checkout-config');
-    if (!configEl) return false;
+    if (!configEl) return;
     const cfg = configEl.dataset || {};
 
-    // [FUSION] 必须先渲染金额和单号，解决“信息不出”问题
-    if (cfg.amount) {
-        const amtParts = cfg.amount.split('.');
-        const intEl = document.getElementById('render-amt-int');
-        const decEl = document.getElementById('render-amt-dec');
-        if (intEl) intEl.textContent = amtParts[0];
-        if (decEl) decEl.textContent = '.' + (amtParts[1] || '00');
-    }
+    // 确定性渲染：无论有无二维码，必须渲染基础信息
+    const amount = cfg.amount || '0.00';
+    const amtParts = amount.split('.');
+    const intEl = document.getElementById('render-amt-int');
+    const decEl = document.getElementById('render-amt-dec');
+    if (intEl) intEl.textContent = amtParts[0];
+    if (decEl) decEl.textContent = '.' + (amtParts[1] || '00');
     
     document.getElementById('display-merchant-order-no') && (document.getElementById('display-merchant-order-no').textContent = cfg.merchantOrderNo || '------');
-    if (cfg.accountName) {
-        const recvEl = document.getElementById('display-account-name');
-        if (recvEl) recvEl.textContent = cfg.accountName;
-    }
+    document.getElementById('display-account-name') && (document.getElementById('display-account-name').textContent = cfg.accountName || '------');
 
     const khqr = (cfg.khqr || '').trim();
-    if (!khqr) return false; // 如果没码，就不执行后续二维码展示
-
-    const qrArea = document.getElementById('qr-display-area');
-    if (qrArea) qrArea.classList.remove('d-none');
-    window.renderQrCode(khqr);
-    updateInterface();
-    return true;
+    if (khqr) {
+        document.getElementById('qr-display-area')?.classList.remove('d-none');
+        window.renderQrCode(khqr);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    // 1. 先初始化多语言界面
     updateInterface();
-    const configEl = document.getElementById('checkout-config');
-    hydrateFromEmbeddedKhqrIfAny();
+    // 2. 渲染基础数据（金额、单号等）
+    hydrateFromEmbeddedData();
 
-    if (configEl && configEl.dataset.remainingSeconds) {
+    const configEl = document.getElementById('checkout-config');
+    if (configEl && configEl.dataset.remainingSeconds > 0) {
         let sec = parseInt(configEl.dataset.remainingSeconds);
-        if (sec > 0) {
-            const expireTime = Date.now() + (sec * 1000);
-            const updateTimer = () => {
-                const diff = expireTime - Date.now();
-                if (diff <= 0) { window.location.reload(); return; }
-                updateTimerVisuals(Math.floor(diff / 1000));
-            };
-            setInterval(updateTimer, 1000);
-            updateTimer();
-        }
+        const expireTime = Date.now() + (sec * 1000);
+        const updateTimer = () => {
+            const diff = expireTime - Date.now();
+            if (diff <= 0) { window.location.reload(); return; }
+            updateTimerVisuals(Math.floor(diff / 1000));
+        };
+        setInterval(updateTimer, 1000);
+        updateTimer();
     }
 
-    const statusPoller = setInterval(async () => {
-        const configEl = document.getElementById('checkout-config');
-        if (!configEl) return;
+    setInterval(async () => {
+        const cfgEl = document.getElementById('checkout-config');
+        if (!cfgEl) return;
         try {
-            const res = await fetch(`api/check_order.php?order_no=${configEl.dataset.orderNo}&token=${currentToken}`);
+            const res = await fetch(`api/check_order.php?order_no=${cfgEl.dataset.orderNo}&token=${currentToken}`);
             const json = await res.json();
             if (json.status === 'paid') {
-                clearInterval(statusPoller);
-                let secondsLeft = 3;
-                let retUrl = json.return_url || '';
-                
-                const updateSuccessHTML = () => {
-                    const secHtml = `<span id="close-timer-sec" class="fw-bold text-dark">${secondsLeft}</span>`;
-                    const hintText = I18N[currentLang].auto_close.replace('{{sec}}', secHtml);
-                    document.querySelector('.checkout-container').innerHTML = `
-                        <div class="payment-card shadow-lg text-center p-5 d-flex flex-column justify-content-center align-items-center" style="min-height: 480px; border-radius: 20px;">
-                            <i class="fa-solid fa-circle-check text-success display-1 mb-4" style="font-size: 90px; color: #198754; animation: scaleIn 0.4s ease-out;"></i>
-                            <h2 class="fw-bold mb-3" style="color: #212529;">${I18N[currentLang].pay_success}</h2>
-                            <p class="text-muted small mb-4" style="font-size: 15px;">${hintText}</p>
-                            ${!retUrl ? `<button class="btn btn-primary px-4 py-3 rounded-pill shadow-sm mt-3" style="width: 100%; max-width: 280px; font-size: 16px;" onclick="window.location.href='about:blank'">${I18N[currentLang].close_page}</button>` : ''}
-                        </div>
-                    `;
-                };
-                updateSuccessHTML();
-                const closeCountdown = setInterval(() => {
-                    secondsLeft--;
-                    const el = document.getElementById('close-timer-sec');
-                    if (el) el.innerText = secondsLeft;
-                    if (secondsLeft <= 0) {
-                        clearInterval(closeCountdown);
-                        if (retUrl) window.location.replace(retUrl);
-                    }
-                }, 1000);
+                document.getElementById('mask-success').style.display = 'flex';
+                if (json.return_url) {
+                    setTimeout(() => window.location.replace(json.return_url), 3000);
+                }
             }
         } catch (e) { }
     }, 4000);
