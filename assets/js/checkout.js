@@ -1,12 +1,12 @@
 /**
- * PayBakong Checkout Logic (v66.5)
- * [V66.5] Restoration: Re-added Polling, Success Redirect, and Copying logic.
- * [V66.4] Enhanced: Added in-page preview modal for iOS screenshot compatibility.
+ * PayBakong Checkout Logic (v66.7)
+ * [V66.7] 1:1 Parity with Local Production logic & data attributes.
+ * [V66.7] Robust error handling for empty data values.
  */
 
 const LOGO_PATH = "assets/img/bank_logo/bakong_logo.png";
 
-// 多语言配置 (1:1 复刻原有文案)
+// [V66.7] 完整多语言字典
 const I18N = {
     km: {
         timer_hint: "សូមបង់ប្រាក់ក្នុងកំឡុងពេលនេះ ប្រព័ន្ធនឹងទូទាត់ដោយស្វ័យប្រវត្ត",
@@ -58,7 +58,7 @@ function showToast(text) {
     let toast = document.querySelector('.copy-toast');
     if (!toast) {
         toast = document.createElement('div');
-        toast.className = 'copy-toast';
+        toast.className = 'copy-toast border-0 shadow';
         document.body.appendChild(toast);
     }
     toast.innerText = text;
@@ -66,18 +66,18 @@ function showToast(text) {
     setTimeout(() => toast.classList.remove('show'), 1500);
 }
 
-window.copyText = function (id, btn) {
+window.copyText = function (id) {
     const el = document.getElementById(id);
     if (!el) return;
     const text = el.innerText.replace('$', '').trim();
     navigator.clipboard.writeText(text).then(() => {
         showToast(I18N[currentLang].copied || 'Copied!');
-        if (btn) {
-            const originalText = btn.innerText;
-            btn.innerText = I18N[currentLang].copied;
-            setTimeout(() => { btn.innerText = originalText; }, 2000);
-        }
-    }).catch(err => console.error("Copy failed", err));
+    }).catch(err => {
+        const input = document.createElement('input');
+        input.value = text; document.body.appendChild(input); 
+        input.select(); document.execCommand('copy'); document.body.removeChild(input);
+        showToast(I18N[currentLang].copied || 'Copied!');
+    });
 };
 
 window.setLanguage = function (lang) {
@@ -100,7 +100,7 @@ function updateInterface() {
 
     const helpImg = document.querySelector('.help-img');
     if (helpImg) {
-        helpImg.src = `assets/img/topup_hint_${currentLang}.jpg?v=66.5`;
+        helpImg.src = `assets/img/topup_hint_${currentLang}.jpg?v=66.7`;
     }
 }
 
@@ -126,24 +126,33 @@ window.closeAllPanels = function () {
 window.renderQrCode = function (qrData) {
     const qrContainer = document.getElementById("qrcode");
     if (!qrContainer || !qrData) return;
+    
+    // [V66.7] 预备显示区域
+    document.getElementById('qr-display-area')?.classList.remove('d-none');
+
     const tempDiv = document.createElement('div');
     tempDiv.style.display = 'none';
     document.body.appendChild(tempDiv);
+    
     if (typeof QRCode === 'undefined') return;
+
     new QRCode(tempDiv, {
-        text: qrData, width: 180, height: 180,
+        text: qrData, width: 220, height: 220,
         colorDark: "#000000", colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.M
     });
+
     const finalize = () => {
         const source = tempDiv.querySelector('canvas') || tempDiv.querySelector('img');
         if (!source) return;
+
         const canvas = document.createElement('canvas');
         canvas.width = 440; canvas.height = 440;
         const ctx = canvas.getContext('2d');
         ctx.scale(2, 2);
         ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 220, 220);
         ctx.drawImage(source, 20, 20, 180, 180);
+
         const logo = new Image();
         logo.src = LOGO_PATH;
         logo.onload = () => {
@@ -153,24 +162,22 @@ window.renderQrCode = function (qrData) {
             if (ctx.roundRect) ctx.roundRect(lx - p, ly - p, lSize + p * 2, lSize + p * 2, 8);
             else ctx.rect(lx - p, ly - p, lSize + p * 2, lSize + p * 2);
             ctx.fill(); ctx.drawImage(logo, lx, ly, lSize, lSize);
-            const finalImg = new Image();
-            finalImg.style.width = '220px'; finalImg.style.borderRadius = '8px';
-            finalImg.src = canvas.toDataURL("image/png");
-            qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
+            const dataUrl = canvas.toDataURL("image/png");
+            qrContainer.innerHTML = `<img src="${dataUrl}" style="width:220px; border-radius:8px;">`;
             if (tempDiv.parentNode) document.body.removeChild(tempDiv);
         };
         logo.onerror = () => {
-            const finalImg = new Image();
-            finalImg.style.width = '220px'; finalImg.src = canvas.toDataURL("image/png");
-            qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
+            const dataUrl = canvas.toDataURL("image/png");
+            qrContainer.innerHTML = `<img src="${dataUrl}" style="width:220px;">`;
             if (tempDiv.parentNode) document.body.removeChild(tempDiv);
         };
     };
+
     const t = setInterval(() => {
-        const scanImg = tempDiv.querySelector('img');
-        const isComplete = scanImg && scanImg.complete && scanImg.naturalWidth > 0;
-        const target = tempDiv.querySelector('canvas') || (isComplete ? scanImg : null);
-        if (target) { clearInterval(t); finalize(); }
+        const target = tempDiv.querySelector('canvas') || tempDiv.querySelector('img');
+        if (target && (target.tagName === 'CANVAS' || (target.complete && target.naturalWidth > 0))) {
+            clearInterval(t); finalize();
+        }
     }, 50);
     setTimeout(() => clearInterval(t), 5000);
 };
@@ -185,6 +192,7 @@ window.saveQrCode = async function () {
         const canvas = await html2canvas(ticketEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
         ticketEl.classList.remove("is-capturing");
         const dataUrl = canvas.toDataURL("image/png");
+
         if (isMobile) {
             const mask = document.createElement('div');
             mask.className = 'screenshot-preview-mask';
@@ -219,39 +227,61 @@ function showSuccessMask(retUrl) {
     }, 1000);
 }
 
+// [V66.7] 核心修復：强制映射数据到 UI
 function applyPaymentData(data) {
-    if (!data) return;
-    const val = parseFloat(data.real_amount || 0).toFixed(2);
-    const parts = val.split('.');
-    document.getElementById('render-amt-int') && (document.getElementById('render-amt-int').textContent = parts[0]);
-    document.getElementById('render-amt-dec') && (document.getElementById('render-amt-dec').textContent = '.' + (parts[1] || '00'));
-    document.getElementById('display-account-name') && (document.getElementById('display-account-name').textContent = data.account_name || '--');
-    document.getElementById('display-merchant-order-no') && (document.getElementById('display-merchant-order-no').textContent = data.out_order_no || '--');
+    console.log("[V66.7] Applying Data to UI:", data);
     
-    if (data.support_link) {
-        document.getElementById('support-tab')?.setAttribute('onclick', `window.open('${data.support_link}', '_blank')`);
-        document.getElementById('support-tab')?.style.setProperty('display', 'flex', 'important');
+    // 映射金额
+    const rawAmt = data.real_amount || "0.00";
+    const val = parseFloat(rawAmt).toFixed(2);
+    const parts = val.split('.');
+    const intEl = document.getElementById('render-amt-int');
+    const decEl = document.getElementById('render-amt-dec');
+    if (intEl) intEl.textContent = parts[0];
+    if (decEl) decEl.textContent = '.' + (parts[1] || '00');
+
+    // 映射账号与单号
+    const nameEl = document.getElementById('display-account-name');
+    const orderNoEl = document.getElementById('display-merchant-order-no');
+    if (nameEl) nameEl.textContent = data.account_name || '------';
+    if (orderNoEl) orderNoEl.textContent = data.out_order_no || '------';
+
+    // 客服与帮助
+    const supportTab = document.getElementById('support-tab');
+    if (data.support_link && supportTab) {
+        supportTab.setAttribute('onclick', `window.open('${data.support_link}', '_blank')`);
+        supportTab.style.setProperty('display', 'flex', 'important');
     }
-    if (Number(data.topup_hint) === 1) {
-        document.getElementById('help-panel-tab')?.style.setProperty('display', 'flex', 'important');
+    const helpTab = document.getElementById('help-panel-tab');
+    if (Number(data.topup_hint) === 1 && helpTab) {
+        helpTab.style.setProperty('display', 'flex', 'important');
     }
-    window.renderQrCode(data.khqr_string || data.qr_data || '');
+
+    // 渲染二维码
+    if (data.khqr_string) window.renderQrCode(data.khqr_string);
 }
 
 window.initPage = async function () {
-    const config = document.getElementById('checkout-config').dataset;
+    const configEl = document.getElementById('checkout-config');
+    if (!configEl) return;
+    const config = configEl.dataset;
+    console.log("[V66.7] Received Raw Config:", config);
+
     const container = document.querySelector('.checkout-container');
     updateInterface();
     if (container) container.style.opacity = '1';
 
-    if (config.khqr) {
-        applyPaymentData({
-            khqr_string: config.khqr, real_amount: config.amount,
-            account_name: config.accountName, out_order_no: config.merchantOrderNo,
-            support_link: config.supportLink, topup_hint: config.topupHint
-        });
-    }
+    // 1:1 对齐本地生产环境的 data 属性名
+    applyPaymentData({
+        khqr_string: config.khqr, 
+        real_amount: config.amount,
+        account_name: config.accountName, 
+        out_order_no: config.merchantOrderNo,
+        support_link: config.supportLink, 
+        topup_hint: config.topupHint
+    });
 
+    // 倒数计时
     if (config.remainingSeconds > 0) {
         let sec = parseInt(config.remainingSeconds);
         const timerText = document.getElementById('timer-text');
@@ -264,16 +294,13 @@ window.initPage = async function () {
         }, 1000);
     }
 
-    // 状态轮询逻辑 (v66.5 恢复)
+    // 订单检测轮询
     if (config.orderNo) {
         const poller = setInterval(async () => {
             try {
                 const res = await fetch(`api/check_order.php?order_no=${config.orderNo}`);
                 const json = await res.json();
-                if (json.status === 'paid') {
-                    clearInterval(poller);
-                    showSuccessMask(json.return_url);
-                }
+                if (json.status === 'paid') { clearInterval(poller); showSuccessMask(json.return_url); }
             } catch (e) {}
         }, 4000);
     }
