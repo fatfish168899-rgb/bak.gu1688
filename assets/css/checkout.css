@@ -284,8 +284,10 @@ body {
 .qr-save-btn {
     border: none;
     width: 100%;
+    max-width: 320px; /* [FIX] 限制最大宽度，防止 500px 容器下显得过长 */
+    margin: 0 auto;  /* 居中 */
     padding: 12px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: #ffffff;
     background: #1a1f2e; /* [FIX] 改为本地版深蓝色调 */
@@ -633,9 +635,11 @@ body.panel-open .side-tab {
 }
 
 .khqr-header img {
-    height: 24px; /* [FIX] 增加 Logo 尺寸，使其在红色区域更醒目 */
-    /* 恢复图标饱满感 */
-    filter: brightness(0) invert(1);
+    height: 24px;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+    /* 取消 invert(1)，因为 SVG 源码已经是 fill="white" */
 }
 
 .ticket-amount-wrapper {
