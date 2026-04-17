@@ -1,0 +1,788 @@
+:root {
+    --primary: #0056ff;
+    --primary-gradient: linear-gradient(135deg, #0056ff 0%, #00a2ff 100%);
+    --bg-light: #f4f7fe;
+    --text-main: #1a2b4b;
+    --text-muted: #6b7c93;
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(226, 232, 240, 0.8);
+    --km-font: 'Kantumruy Pro', 'Kantumruy', 'Noto Sans Khmer', 'Hanuman', 'Khmer OS Content', 'Khmer Sangam MN', system-ui, sans-serif;
+}
+
+/* 高棉语视觉优化 (V20.1) */
+html[lang="km"] body {
+    font-family: var(--km-font) !important;
+}
+
+html[lang="km"] .detail-label,
+html[lang="km"] .detail-value,
+html[lang="km"] div,
+html[lang="km"] span,
+html[lang="km"] button {
+    font-weight: 500;
+}
+
+html[lang="km"] .fw-bold,
+html[lang="km"] strong {
+    font-weight: 700 !important;
+}
+
+/* 语言切换器样式 */
+.lang-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 6px;
+    border-radius: 12px;
+    font-size: 0.6rem;
+    color: #666;
+}
+
+.lang-btn {
+    cursor: pointer;
+    padding: 0 3px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.lang-btn.active {
+    color: #0d6efd;
+    font-weight: bold;
+}
+
+.lang-btn:hover {
+    color: #0d6efd;
+}
+
+.lang-switcher .divider {
+    margin: 0 2px;
+    opacity: 0.3;
+}
+
+body {
+    background: var(--bg-light);
+    background-image: radial-gradient(at 0% 0%, rgba(0, 86, 255, 0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(0, 162, 255, 0.08) 0px, transparent 50%);
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+}
+
+.checkout-container {
+    max-width: 440px;
+    width: 100%;
+    padding: 0 10px;
+    margin: 0 auto;
+}
+
+/* 核心卡片：移除所有 blur 滤镜，确保锐利 */
+.payment-card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid #eef2f6;
+    box-shadow: 0 15px 40px rgba(0, 86, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+    padding: 6px 14px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 0;
+    max-width: 480px;
+    /* 同步最新的宽度设定 */
+}
+
+.amount-display {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #0055ff;
+    margin: 5px 0 2px 0 !important;
+    letter-spacing: -1px;
+    text-align: center;
+}
+
+.amount-warning-container {
+    margin-top: 0 !important;
+    margin-bottom: 5px !important;
+}
+
+.qr-ticket-section {
+    width: 300px;
+    display: block !important;
+    margin: 10px auto !important;
+    /* 强制水平居中 */
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    /* 增加视觉区块感 [V29.5] */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    border: 1px solid #f0f3f6;
+}
+
+.qr-area {
+    padding: 2px;
+    border-radius: 12px;
+    margin: 4px 0;
+    text-align: center;
+    position: relative;
+}
+
+#qrcode {
+    padding: 0;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+.final-qr-img {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 订单详情卡片 */
+
+/* 订单详情卡片 */
+.order-details-card {
+    background: #fdfdfe;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    margin: 5px 20px 8px 20px;
+    padding: 2px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    min-width: 68px;
+    flex-shrink: 0;
+}
+
+.detail-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+
+.detail-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: right;
+    word-break: break-all;
+}
+
+.mini-copy-btn {
+    background: #f0f7ff;
+    color: #448aff;
+    border: none;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#display-card-no {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+#display-order-no {
+    font-size: 0.62rem;
+    font-weight: 400;
+    opacity: 0.6;
+    word-break: break-all;
+    line-height: 1.2;
+}
+
+/* QR 保存按钮 */
+
+/* QR 保存按钮 */
+.qr-action-group {
+    max-width: 200px;
+    margin: 10px auto;
+    background: #f1f5f9;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.qr-hint-row {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #f8fafc;
+}
+
+.qr-save-btn {
+    border: none;
+    width: 100%;
+    padding: 9px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #ffffff;
+    background: #0056ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* 呼吸灯效果 */
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #00c853;
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 0 rgba(0, 200, 83, 0.4);
+    animation: dot-pulse 2s infinite ease-in-out;
+}
+
+@keyframes dot-pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(0, 200, 83, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 200, 83, 0);
+    }
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.copy-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.copy-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -60%);
+}
+
+/* ==========================================================================
+   全新左右状态系统 (V27.3 - 独立解耦版)
+   ========================================================================== */
+
+.side-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 3000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.side-panel-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.side-panel-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.side-panel-wrapper {
+    position: absolute;
+    top: 40%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    z-index: 2500;
+    pointer-events: auto;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+body.panel-open .side-tab {
+    display: none !important;
+}
+
+.side-panel-wrapper.left {
+    left: 0;
+}
+
+.side-panel-wrapper.right {
+    right: 0;
+}
+
+.side-tab {
+    width: 36px;
+    background: #ffb300;
+    color: white;
+    padding: 18px 2px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: absolute;
+    transition: all 0.3s ease;
+}
+
+.side-panel-wrapper.left .side-tab {
+    right: -36px;
+    border-radius: 0 14px 14px 0;
+}
+
+.side-panel-wrapper.right .side-tab {
+    left: -36px;
+    border-radius: 14px 0 0 14px;
+}
+
+.side-tab .tab-text {
+    writing-mode: vertical-lr;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.side-tab .tab-icon {
+    font-size: 0.88rem;
+    transition: all 0.3s;
+}
+
+.side-drawer {
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 3100;
+}
+
+.drawer-header {
+    background: #ffb300;
+    padding: 18px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+}
+
+.header-icon-box {
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.header-text .main-title {
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.header-text .sub-title {
+    font-size: 0.65rem;
+    opacity: 0.9;
+}
+
+.drawer-content {
+    padding: 15px;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.help-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: pointer;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 769px) {
+    .side-drawer {
+        width: 320px;
+        position: absolute;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        right: 45px;
+        top: 40%;
+        transform: translateY(-50%) translateX(15px);
+        border-radius: 16px;
+    }
+
+    .side-drawer.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(-50%) translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .side-panel-wrapper {
+        position: fixed;
+        z-index: 2800;
+    }
+
+    .side-panel-wrapper.left {
+        left: 0;
+        top: 40%;
+    }
+
+    .side-panel-wrapper.right {
+        right: 0;
+        left: auto;
+        top: 40%;
+    }
+
+    .side-drawer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100vw !important;
+        height: auto;
+        max-height: 80vh;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
+        border-radius: 24px 24px 0 0 !important;
+        box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .side-drawer.active {
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   图 3：工业级票据重构样式 (V25.0)
+   ========================================================================== */
+.khqr-header {
+    background: #E31B23;
+    height: 54px;
+    /* 增高页眉，更显大气 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: 20px 20px 0 0;
+    /* 匹配大卡片的圆角 */
+}
+
+/* 官方标志性的切角效果 */
+/* 官方灵魂凸角：回归精致小三角 [V46.0] */
+.khqr-header::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: -1px;
+    width: 32px;
+    /* 回归用户认可的精致跨度 */
+    height: 18px;
+    /* 适中的下垂深度 */
+    background: #E31B23;
+    /* 核心：绘制一个连接右边缘的利落三角 */
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.khqr-header img {
+    height: 18px;
+    /* 恢复图标饱满感 */
+    filter: brightness(0) invert(1);
+}
+
+.ticket-amount-wrapper {
+    text-align: left !important;
+    padding: 6px 0 2px 16px;
+    /* 持续增加左侧缩进，确保位移感充足 */
+    width: 100%;
+}
+
+.ticket-amount-val {
+    display: inline-block;
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #1a2b4b;
+    line-height: 1;
+}
+
+.ticket-amount-cur {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a2b4b;
+    margin-left: 5px;
+    text-transform: uppercase;
+}
+
+.ticket-divider {
+    width: 100%;
+    margin: 16px 0;
+    border-top: 2px dashed #cbd5e1;
+    /* 颜色略微加深，更清晰 */
+    height: 1px;
+    opacity: 0.6;
+}
+
+/* 银行图标网格复原 [V27.5] */
+
+/* 银行图标网格复原 [V27.5] */
+.supported-banks-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.012);
+    border-radius: 10px;
+    margin-top: 2px;
+}
+
+.bank-grid-item-mini {
+    background: white;
+    border-radius: 6px;
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f0f0f0;
+    aspect-ratio: 1/1;
+}
+
+.bank-grid-item-mini img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+/* 微弱跳动动画给红色圆点 */
+
+/* 微弱跳动动画给红色圆点 */
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+}
+
+/* 银行认证底部样式 (V30.0) */
+.supported-banks-footer {
+    color: #10b981 !important;
+    /* 翡翠绿认证色 */
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+.supported-banks-footer i {
+    font-size: 14px;
+}
+
+/* 截屏捕捉状态优化 (V32.1) - 保存时隐藏动态/装饰元素 */
+.qr-ticket-section.is-capturing .khqr-header::after,
+.qr-ticket-section.is-capturing .qr-bottom-left {
+    display: none !important;
+}
+
+/* 捕捉时让商户名居中显示 */
+.qr-ticket-section.is-capturing .qr-bottom-right {
+    flex: 1;
+    justify-content: center;
+}
+
+/* 保存按钮高级配色 (V33.0) */
+.save-qr-btn {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15) !important;
+}
+
+.save-qr-btn:hover {
+    background-color: #0f172a !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(30, 41, 59, 0.2) !important;
+}
+
+/* 全局安全提醒样式 (V34.0) */
+.pay-warning-container {
+    background-color: #fffbf0 !important;
+    border: 1px solid #ffe58f !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    margin: 10px 15px 20px 15px !important;
+    font-size: 13px !important;
+    color: #856404 !important;
+    line-height: 1.6 !important;
+    box-shadow: 0 2px 8px rgba(133, 100, 4, 0.05) !important;
+}
+
+.pay-warning-container ol {
+    padding-left: 18px !important;
+    margin-bottom: 0 !important;
+}
+
+.pay-warning-container li {
+    margin-bottom: 8px !important;
+    font-weight: 500 !important;
+}
+
+.pay-warning-container li:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* -------------------------------------------------- */
+
+/* [V43.0] 工业级：长方形慢速流光倒计时系统 */
+@keyframes spin-logic {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.timer-rect-wrap {
+    position: relative;
+    width: 72px;
+    height: 34px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.03);
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+/* 旋转流光层：4秒超慢速 */
+.timer-rect-wrap::before {
+    content: '';
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background: conic-gradient(transparent 65%,
+            #E31B23 85%,
+            #E31B23 95%,
+            transparent 100%);
+    animation: spin-logic 4s linear infinite;
+    z-index: 1;
+}
+
+/* 内部遮罩层：透出底部的流光 */
+.timer-rect-inner {
+    position: absolute;
+    inset: 2px;
+    /* 边框厚度 */
+    background: #f8fafc;
+    /* 匹配底座颜色 */
+    border-radius: 6.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.qr-bottom-timer {
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    color: #E31B23 !important;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+    letter-spacing: 0.5px;
+    z-index: 3;
+    position: relative;
+    top: -0.2px;
+}
+
+/* [V44.0] 金额小数位差异化样式 */
+.ticket-amount-decimal {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    margin-left: 1px;
+    vertical-align: baseline;
+    opacity: 0.9;
+}

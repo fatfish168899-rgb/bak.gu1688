@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="km">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Checkout | PayBank</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/all.min.css" rel="stylesheet">
+    <link href="assets/css/checkout.css?v=52.0" rel="stylesheet">
+    <style>
+        .supported-banks-grid-compact {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            padding: 6px;
+            background: rgba(0, 0, 0, 0.012);
+            border-radius: 10px;
+            margin-top: 2px;
+            margin-bottom: 8px !important;
+        }
+
+        .bank-grid-item-mini {
+            background: white;
+            border-radius: 6px;
+            padding: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0f0f0;
+            aspect-ratio: 1/1;
+        }
+
+        .bank-grid-item-mini img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 极简加载层 -->
+    <div id="page-loading"
+        style="position:fixed; inset:0; background:#f8f9fa; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        <div class="mt-3 text-muted small fw-bold">Loading Secure Checkout...</div>
+    </div>
+
+    <!-- 配置容器 -->
+    <div id="checkout-config" data-khqr="" data-order-no="" data-amount="0.00" data-remaining-seconds="0"
+        data-bank-name=""></div>
+
+    <div class="checkout-container m-0 p-0" style="opacity:0; transition: opacity 0.4s;">
+        <!-- 票据顶部：下垂红色标签 (Industrial Grade) -->
+        <div class="khqr-header">
+            <img src="assets/img/allbank/Bakong.png" alt="KHQR" class="khqr-logo-top">
+            <span class="khqr-text">KHQR</span>
+        </div>
+
+        <div class="payment-card shadow-lg">
+            <div class="bank-selector-wrapper mb-0">
+                <div class="d-flex justify-content-between align-items-center mb-0 p-1 position-relative">
+                    <div class="lang-switcher">
+                        <span class="lang-btn" onclick="setLanguage('km')" id="lang-km">KM</span>
+                        <span class="divider">|</span>
+                        <span class="lang-btn" onclick="setLanguage('en')" id="lang-en">EN</span>
+                        <span class="divider">|</span>
+                        <span class="lang-btn" onclick="setLanguage('zh')" id="lang-zh">ZH</span>
+                    </div>
+                    <div class="flex-grow-1 text-center">
+                        <small class="text-danger fw-bold" style="font-size: 0.72rem;"
+                            data-i18n="timer_hint">Please complete payment in time</small>
+                    </div>
+                    <div style="width:70px"></div>
+                </div>
+
+                <!-- 8银行紧凑型宫格 -->
+                <div class="supported-banks-grid-compact mb-2" id="bank-icons-container">
+                    <div class="bank-grid-item-mini" onclick="switchBank('ABA')" style="cursor:pointer"><img
+                            src="assets/img/allbank/ABABank.png" alt="ABA"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('ACLEDA')" style="cursor:pointer"><img
+                            src="assets/img/allbank/AcledaBank.png" alt="ACLEDA"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('WING')" style="cursor:pointer"><img
+                            src="assets/img/allbank/WingBank.png" alt="WING"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('CANADIA')" style="cursor:pointer"><img
+                            src="assets/img/allbank/CanadiaBank.png" alt="CANADIA"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('AMRET')" style="cursor:pointer"><img
+                            src="assets/img/allbank/Amret.png" alt="AMRET"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('PIPAY')" style="cursor:pointer"><img
+                            src="assets/img/allbank/Pipay.png" alt="PIPAY"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('TRUEMONEY')" style="cursor:pointer"><img
+                            src="assets/img/allbank/TrueMoney.png" alt="TRUEMONEY"></div>
+                    <div class="bank-grid-item-mini" onclick="switchBank('BAKONG')" style="cursor:pointer"><img
+                            src="assets/img/allbank/Bakong.png" alt="Bakong"></div>
+                </div>
+
+                <div class="text-muted small text-center mb-2" style="font-size: 11px; opacity: 0.8; margin-top: -8px;">
+                    <i class="fa-solid fa-circle-check me-1" style="color: #4CAF50;"></i> <span
+                        data-i18n="supported_banks_hint">Bakong / KHQR Secure Payment</span>
+                </div>
+            </div>
+
+            <!-- 二维码显示区域 -->
+            <div class="qr-area d-none" id="qr-display-area">
+                <div id="qrcode" class="mx-auto"></div>
+                <!-- 倒计时：流光长方形容器 -->
+                <div class="timer-rect-wrap mt-3 mb-2" id="timer-base-rect">
+                    <div class="timer-inner">
+                        <span class="qr-bottom-timer fw-bold" id="timer-text">--:--</span>
+                    </div>
+                </div>
+                <div class="qr-action-group">
+                    <button class="qr-save-btn" onclick="saveQrCode()" id="save-qr-btn">
+                        <i class="fa-solid fa-download me-1"></i>
+                        <span data-i18n="save_qr">Save QR to Album</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="selection-placeholder p-4 text-center d-none" id="selection-placeholder">
+                <div class="spinner-border text-primary mb-3"></div>
+                <h5 class="fw-bold mb-1" data-i18n="assigning">Assigning account...</h5>
+            </div>
+
+            <!-- 金额展示：分号精细化排版 -->
+            <div class="ticket-amount-wrapper text-center">
+                <div class="ticket-amount-label" data-i18n="amount_label">Total Amount Due</div>
+                <div class="ticket-amount-val-group">
+                    <span class="ticket-currency">USD</span>
+                    <span class="ticket-amount-val" id="amt-integer">0</span>
+                    <span class="ticket-amount-decimal" id="amt-decimal">.00</span>
+                </div>
+                <div class="amount-warning-banner mt-2">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    <span data-i18n="amount_warning">Ensure transfer amount matches due amount for auto-credit</span>
+                </div>
+            </div>
+
+            <!-- 收款详情卡片 -->
+            <div class="order-details-card d-none" id="payment-info-area">
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-user-tie me-1 opacity-75"></i><span
+                            data-i18n="receiver_label">Receiver</span></span>
+                    <div class="detail-content"><span class="detail-value" id="display-account-name">------</span><button
+                            class="mini-copy-btn" onclick="copyText('display-account-name', this)"
+                            data-i18n="copy">Copy</button></div>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-credit-card me-1 opacity-75"></i><span
+                            data-i18n="card_label">Account No</span></span>
+                    <div class="detail-content"><span class="detail-value font-monospace"
+                            id="display-card-no">------</span><button class="mini-copy-btn"
+                            onclick="copyText('display-card-no', this)" data-i18n="copy">Copy</button></div>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-building-columns me-1 opacity-75"></i><span
+                            data-i18n="bank_label_row">Receiving Bank</span></span>
+                    <div class="detail-content"><span class="detail-value" id="display-bank-name">------</span><button
+                            class="mini-copy-btn" onclick="copyText('display-bank-name', this)"
+                            data-i18n="copy">Copy</button></div>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa-solid fa-receipt me-1 opacity-75"></i><span
+                            data-i18n="order_no_label">Order No</span></span>
+                    <div class="detail-content"><span class="detail-value" id="display-order-no">------</span><button
+                            class="mini-copy-btn" onclick="copyText('display-order-no', this)"
+                            data-i18n="copy">Copy</button></div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3 mb-1">
+                <small class="text-muted opacity-50" style="font-size: 0.63rem;">
+                    Merchant Ref: <span id="merchant-ref-display">N/A</span>
+                </small>
+            </div>
+        </div>
+
+        <!-- 成功/过期遮罩层 -->
+        <div id="success-mask"
+            style="display:none; position:fixed; inset:0; background:#ffffff; z-index:10000; flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
+            <i class="fa-solid fa-circle-check text-success mb-4" style="font-size: 100px; color: #198754;"></i>
+            <h2 class="fw-bold mb-3" data-i18n="pay_success">Payment Success!</h2>
+            <p class="text-muted text-center" id="success-hint">Page will refresh in <span id="close-sec">3</span>
+                seconds...</p>
+        </div>
+
+        <div id="expiry-mask"
+            style="display:none; position:fixed; inset:0; background:#f8f9fa; z-index:10001; flex-direction:column; align-items:center; justify-content:center; padding: 40px; text-align: center;">
+            <i class="fa-solid fa-clock-rotate-left text-muted mb-4" style="font-size: 100px;"></i>
+            <h2 class="fw-bold mb-2 text-danger" data-i18n="order_expired">Order Expired!</h2>
+            <button class="btn btn-primary px-5 py-2 rounded-pill" onclick="window.location.reload()"
+                data-i18n="retry_btn">Retry</button>
+        </div>
+    </div>
+
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/qrcode.min.js"></script>
+    <script>window.API_BASE = 'https://khbak.gu1688.com/';</script>
+    <script src="assets/js/checkout.js?v=52.0"></script>
+</body>
+
+</html>
