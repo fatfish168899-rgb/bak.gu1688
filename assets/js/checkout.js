@@ -1,8 +1,10 @@
 /**
  * PayBank Checkout Logic
- * Version: 1.2.3 [V68.2 FIXED]
- * [DEFINITIVE] Fixed Early Return Bug & ID Mappings
+ * Version: 1.2.1-STATIC-SMART [Auto-Hydration Edition]
+ * 1:1 Mirror from Production (Public) + Smart Initialization
  */
+
+const API_BASE = "https://khbak.gu1688.com/"; // [V66.5-FIX] 找回丢失的服务器域名配置
 
 const I18N = {
     km: {
@@ -42,7 +44,10 @@ const I18N = {
         supported_banks_footer: "គាំទ្រគ្រប់ភ្នាក់ងារធនាគារ KHQR ខាងលើ",
         warn_1: "ប្រសិនបើនេះមិនមែនជាការបញ្ជាទិញរបស់អ្នកទេ សូមកុំបង់ប្រាក់",
         warn_2: "ជូនដំណឹងម្ដងទៀត សូមកុំកត់ត្រាលេខគណនី ពីព្រោះវាអាចផ្លាស់ប្តូរបានជានិច្ច ដោយគ្មានការជូនដំណឹង ការពិនិត្យគណនីគោលដៅមុនពេលផ្ទេរគឺមានសារៈសំខាន់",
-        warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ បើមិនដូច្នេះទេ អ្នកនឹងមិនទទួលបានចំនួនដើមទេ"
+        warn_3: "សូមធ្វើការដាក់ប្រាក់ទាន់ពេលវេលា និងបង់ប្រាក់ត្រឹមតែចំនួនដែលបានបង្ហាញ បើមិនដូច្នេះទេ អ្នកនឹងមិនទទួលបានចំនួនដើមទេ",
+        initializing: "កំពុងទាញយកព័ត៌មានការបញ្ជាទិញ...",
+        expired: "ការបញ្ជាទិញបានហួសសម័យ",
+        expired_hint: "សូមត្រឡប់ទៅអាជីវករវិញ ដើម្បីចាប់ផ្ដើមការបង់ប្រាក់ឡើងវិញ"
     },
     en: {
         timer_hint: "Please pay within this time, system will auto-credit",
@@ -81,7 +86,10 @@ const I18N = {
         supported_banks_footer: "Supports all the above KHQR banks",
         warn_1: "If this is not your order, please do not pay.",
         warn_2: "Do not save this account number as it may change without notice. Verifying the receiver before transfer is essential.",
-        warn_3: "Please pay on time and only the exact amount shown to ensure auto-credit."
+        warn_3: "Please pay on time and only the exact amount shown to ensure auto-credit.",
+        initializing: "Initializing order info...",
+        expired: "Order Expired",
+        expired_hint: "Please return to merchant and re-initiate payment"
     },
     zh: {
         timer_hint: "请在规定时间内完成支付",
@@ -92,6 +100,8 @@ const I18N = {
         amount_warning: "请确保金额一致，否则无法自动到账",
         receiver_label: "收款人",
         card_label: "收款账号",
+        bank_label_row: "收款银行",
+        order_no_label: "订单号",
         copy: "复制",
         waiting_pay: "正在等待支付...",
         copied: "已复制!",
@@ -120,11 +130,18 @@ const I18N = {
         supported_banks_footer: "支持以上所有 KHQR 银行",
         warn_1: "如果这不是您的订单，请勿支付。",
         warn_2: "请勿记录此收款账号，账号会不定期更换。转账前请务必核对收款人及账号。",
-        warn_3: "请及时支付且仅支付显示的准确金额，否则将无法自动到账。"
+        warn_3: "请及时支付且仅支付显示的准确金额，否则将无法自动到账。",
+        initializing: "正在初始化订单信息...",
+        expired: "订单已失效",
+        expired_hint: "请返回商户重新发起支付"
     }
 };
 
-const BANK_COLORS = { 'BAKONG': '#ED1C24' };
+const BANK_COLORS = {
+    'BAKONG': '#ED1C24'
+};
+
+let isExpired = false; // [V66.5-STATE] 记录订单是否已失效，用于语言切换联动
 
 function getDetectLanguage() {
     const cookieLang = document.cookie.split('; ').find(row => row.startsWith('paybakong_lang='))?.split('=')[1];
@@ -146,27 +163,58 @@ window.setLanguage = function (lang) {
     updateInterface();
 }
 
+window.safeOpen = function (url) {
+    if (!url) return;
+    const win = window.open(url, '_blank');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = url;
+    }
+}
+
 const urlParams = new URLSearchParams(window.location.search);
 const currentToken = urlParams.get('token') || '';
+const currentOrderNo = urlParams.get('order_no') || '';
 
 function updateInterface() {
     document.documentElement.lang = currentLang;
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
-        if (I18N[currentLang] && I18N[currentLang][key]) { el.innerText = I18N[currentLang][key]; }
+        if (I18N[currentLang] && I18N[currentLang][key]) {
+            el.innerText = I18N[currentLang][key];
+        }
     });
-    const helpImgEl = document.querySelector('.help-img');
-    if (helpImgEl && I18N[currentLang].help_img) { helpImgEl.src = I18N[currentLang].help_img; }
-    
-    document.getElementById('lang-km')?.classList.toggle('active', currentLang === 'km');
-    document.getElementById('lang-en')?.classList.toggle('active', currentLang === 'en');
-    document.getElementById('lang-zh')?.classList.toggle('active', currentLang === 'zh');
-    
-    const hintEl = document.getElementById('scan-hint-text');
-    if (hintEl) {
-        const text = I18N[currentLang]['recom_use'].replace('{{bank}}', 'Bakong / KHQR');
-        hintEl.innerHTML = `<i class="fa-solid fa-mobile-screen-button me-1"></i> ${text}`;
+
+    const warnGlobal = document.getElementById('pay-warning-global');
+    if (warnGlobal) {
+        warnGlobal.classList.remove('d-none');
     }
+
+    const helpImgEl = document.querySelector('.help-img');
+    if (helpImgEl && I18N[currentLang].help_img) {
+        helpImgEl.src = I18N[currentLang].help_img;
+    }
+
+    const kmBtn = document.getElementById('lang-km');
+    const enBtn = document.getElementById('lang-en');
+    const zhBtn = document.getElementById('lang-zh');
+    if (kmBtn) kmBtn.classList.toggle('active', currentLang === 'km');
+    if (enBtn) enBtn.classList.toggle('active', currentLang === 'en');
+    if (zhBtn) zhBtn.classList.toggle('active', currentLang === 'zh');
+
+    const bankPill = document.querySelector('.bank-pill.active');
+    if (bankPill) updateHintText(bankPill.dataset.bank);
+
+    // 联动逻辑：如果当前已处于失效状态，切换语言时自动重新渲染失效提示 (V66.5-REACTIVE)
+    if (isExpired) {
+        handleExpired();
+    }
+}
+
+function updateHintText(bankName) {
+    const hintEl = document.getElementById('scan-hint-text');
+    if (!hintEl) return;
+    const text = I18N[currentLang]['recom_use'].replace('{{bank}}', 'Bakong / KHQR');
+    hintEl.innerHTML = `<i class="fa-solid fa-mobile-screen-button me-1"></i> ${text}`;
 }
 
 function showToast(text) {
@@ -176,7 +224,8 @@ function showToast(text) {
         toast.className = 'copy-toast';
         document.body.appendChild(toast);
     }
-    toast.innerText = text; toast.classList.add('show');
+    toast.innerText = text;
+    toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 1500);
 }
 
@@ -191,164 +240,381 @@ window.copyText = function (id, btn) {
             const originalText = targetBtn.innerText;
             targetBtn.innerText = I18N[currentLang].copied;
             targetBtn.style.color = '#28a745';
-            setTimeout(() => { targetBtn.innerText = originalText; targetBtn.style.color = ''; }, 2000);
+            setTimeout(() => {
+                targetBtn.innerText = originalText;
+                targetBtn.style.color = '';
+            }, 2000);
         }
     }).catch(err => console.error("Copy failed", err));
 };
 
 function updateTimerVisuals(remainingSeconds) {
     const textEl = document.getElementById('timer-text');
+    if (!textEl) return;
+    if (remainingSeconds <= 0) {
+        textEl.textContent = "00:00";
+        return;
+    }
     const m = Math.floor(remainingSeconds / 60);
     const s = remainingSeconds % 60;
     const t = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    if (textEl) textEl.textContent = t;
+    textEl.textContent = t;
 }
 
-window.renderQrCode = function (qrData) {
+window.renderQrCode = function (qrData, bankName) {
     const qrContainer = document.getElementById("qrcode");
-    if (!qrContainer) return;
+    if (!qrContainer || !qrData) return;
+
     const tempDiv = document.createElement('div');
     tempDiv.style.display = 'none';
     document.body.appendChild(tempDiv);
+
     new QRCode(tempDiv, {
-        text: qrData, width: 200, height: 200,
+        text: qrData,
+        width: 200, height: 200,
         colorDark: "#000000", colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.M
     });
+
     const finalizeOnce = () => {
         const source = tempDiv.querySelector('canvas') || tempDiv.querySelector('img');
         if (!source) return;
+
         const canvas = document.createElement('canvas');
         const w = 220, h = 220;
         canvas.width = w * 2; canvas.height = h * 2;
         const ctx = canvas.getContext('2d');
-        ctx.scale(2, 2); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, w, h);
+        ctx.scale(2, 2);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, w, h);
         ctx.drawImage(source, 10, 10, 200, 200);
+
+        const deliverToPage = () => {
+            const finalImg = new Image();
+            finalImg.style.width = '220px';
+            finalImg.style.borderRadius = '8px';
+            finalImg.src = canvas.toDataURL("image/png");
+            qrContainer.innerHTML = "";
+            qrContainer.appendChild(finalImg);
+            if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+        };
+
         const logo = new Image();
         logo.src = "assets/img/bank_logo/bakong_logo.png";
         logo.onload = () => {
             const lSize = 32, p = 3;
             const lx = (w - lSize) / 2, ly = (h - lSize) / 2;
-            ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "#ED1C24"; ctx.lineWidth = 1.5; ctx.beginPath();
+            ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "#ED1C24"; ctx.lineWidth = 1.5;
+            ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(lx - p, ly - p, lSize + p * 2, lSize + p * 2, 8);
             else ctx.rect(lx - p, ly - p, lSize + p * 2, lSize + p * 2);
             ctx.fill(); ctx.stroke();
             ctx.drawImage(logo, lx, ly, lSize, lSize);
-            const finalImg = new Image();
-            finalImg.style.width = '220px'; finalImg.src = canvas.toDataURL("image/png");
-            qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
-            document.body.removeChild(tempDiv);
+            deliverToPage();
         };
-        logo.onerror = () => {
-            const finalImg = new Image();
-            finalImg.style.width = '220px'; finalImg.src = canvas.toDataURL("image/png");
-            qrContainer.innerHTML = ""; qrContainer.appendChild(finalImg);
-            document.body.removeChild(tempDiv);
-        };
+        logo.onerror = deliverToPage;
     };
+
     const t = setInterval(() => {
-        const target = tempDiv.querySelector('canvas') || tempDiv.querySelector('img');
-        if (target && (target.tagName === 'CANVAS' || (target.complete && target.naturalWidth > 0))) {
-            clearInterval(t); finalizeOnce();
-        }
+        const qI = tempDiv.querySelector('img');
+        const qC = tempDiv.querySelector('canvas');
+        if ((qI && qI.complete) || qC) { clearInterval(t); finalizeOnce(); }
     }, 20);
 };
 
+/**
+ * 智能设备探测：识别苹果移动端 (V66.5-OS-DETECT)
+ */
+function isAppleDevice() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 window.saveQrCode = async function () {
     const ticketEl = document.querySelector(".qr-ticket-section");
+    const previewOverlay = document.getElementById("qr-preview-overlay");
+    const previewImg = document.getElementById("qr-preview-img");
+
     if (!ticketEl || typeof html2canvas === 'undefined') return;
-    const config = document.getElementById('checkout-config')?.dataset || {};
-    const orderNo = config.merchantOrderNo || 'ORDER';
+
     showToast(I18N[currentLang].assigning || "Processing...");
+
     try {
         ticketEl.classList.add("is-capturing");
-        const canvas = await html2canvas(ticketEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+        const canvas = await html2canvas(ticketEl, {
+            scale: isAppleDevice() ? 3 : 2, // 苹果用高倍率方便长按，安卓用普通倍率加快速度
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false
+        });
         ticketEl.classList.remove("is-capturing");
         const dataUrl = canvas.toDataURL("image/png");
-        const link = document.createElement('a');
-        link.href = dataUrl; link.download = `KHQR_${orderNo}.png`;
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        showToast(currentLang === 'zh' ? "保存成功" : "Success");
+
+        if (isAppleDevice()) {
+            // 苹果设备：弹出大图预览，引导用户长按保存
+            if (previewOverlay && previewImg) {
+                previewImg.src = dataUrl;
+                previewOverlay.classList.add("active");
+            }
+        } else {
+            // 安卓与电脑：直接触发浏览器下载
+            const config = document.getElementById('checkout-config').dataset;
+            const orderNo = config.merchantOrderNo || config.orderNo || 'ORDER';
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `KHQR_${orderNo}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(currentLang === 'zh' ? "保存成功" : "Save Success");
+        }
+
     } catch (err) {
-        ticketEl.classList.remove("is-capturing"); showToast("Save Failed");
+        ticketEl.classList.remove("is-capturing");
+        showToast(currentLang === 'zh' ? "保存失败" : "Failed");
     }
 };
 
-window.togglePanel = function (id) {
-    const el = document.getElementById(id);
+window.closeQrPreview = function () {
+    const previewOverlay = document.getElementById("qr-preview-overlay");
+    if (previewOverlay) previewOverlay.classList.remove("active");
+};
+
+window.togglePanel = function (panelId) {
+    const panels = ['contact-panel', 'help-panel'];
     const overlay = document.getElementById('panel-overlay');
-    if (!el) return;
-    const isActive = el.classList.contains('active');
-    window.closeAllPanels();
-    if (!isActive) {
-        el.classList.add('active');
-        if (overlay) overlay.classList.add('show');
-        document.body.classList.add('panel-open');
+    let anyOpen = false;
+    panels.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === panelId) {
+            if (el.classList.contains('active')) {
+                el.classList.remove('active');
+            } else {
+                el.classList.add('active');
+                anyOpen = true;
+            }
+        } else { el.classList.remove('active'); }
+    });
+    if (overlay) {
+        if (anyOpen) { overlay.classList.add('show'); document.body.classList.add('panel-open'); }
+        else { overlay.classList.remove('show'); document.body.classList.remove('panel-open'); }
     }
 };
 
 window.closeAllPanels = function () {
-    document.querySelectorAll('.side-drawer').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-overlay')?.classList.remove('show');
+    ['contact-panel', 'help-panel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+    const overlay = document.getElementById('panel-overlay');
+    if (overlay) overlay.classList.remove('show');
     document.body.classList.remove('panel-open');
 };
 
-function hydrateFromEmbeddedData() {
+/**
+ * 核心功能：数据渲染与注入 [V1.2.1-STATIC-SMART]
+ */
+function renderOrderData(data) {
     const configEl = document.getElementById('checkout-config');
     if (!configEl) return;
-    const cfg = configEl.dataset || {};
 
-    // 确定性渲染：无论有无二维码，必须渲染基础信息
-    const amount = cfg.amount || '0.00';
-    const amtParts = amount.split('.');
-    const intEl = document.getElementById('render-amt-int');
-    const decEl = document.getElementById('render-amt-dec');
-    if (intEl) intEl.textContent = amtParts[0];
-    if (decEl) decEl.textContent = '.' + (amtParts[1] || '00');
-    
-    document.getElementById('display-merchant-order-no') && (document.getElementById('display-merchant-order-no').textContent = cfg.merchantOrderNo || '------');
-    document.getElementById('display-account-name') && (document.getElementById('display-account-name').textContent = cfg.accountName || '------');
+    // 更新配置缓存
+    configEl.dataset.khqr = data.khqr_string || '';
+    configEl.dataset.orderNo = data.order_no || '';
+    configEl.dataset.merchantOrderNo = data.out_order_no || '';
+    configEl.dataset.accountName = data.account_name || '';
+    configEl.dataset.amount = data.real_amount || '0.00';
+    configEl.dataset.remainingSeconds = data.remaining_seconds || data.expire_in || 0;
+    configEl.dataset.bankName = data.bank_name || 'BAKONG';
 
-    const khqr = (cfg.khqr || '').trim();
-    if (khqr) {
-        document.getElementById('qr-display-area')?.classList.remove('d-none');
-        window.renderQrCode(khqr);
+    // 渲染 UI 基础数据 (即使失效也展示)
+    if (document.getElementById('display-merchant-order-no')) document.getElementById('display-merchant-order-no').textContent = data.out_order_no || data.order_no || '';
+    if (document.getElementById('display-account-name')) document.getElementById('display-account-name').textContent = data.account_name || '';
+
+    // 渲染金额 (V66.5-ALIGN-FIX)
+    const amountVal = data.real_amount || data.amount || 0;
+    const amt = parseFloat(amountVal);
+    const parts = amt.toFixed(2).split('.');
+    if (document.getElementById('render-amt-int')) document.getElementById('render-amt-int').textContent = parts[0] + '.';
+    if (document.getElementById('render-amt-dec')) document.getElementById('render-amt-dec').textContent = parts[1];
+
+    // 1) 检查订单状态：只有未失效才继续渲染二维码和其它入口 [V66.5-SECURITY]
+    if (data.status === 'expired' || (data.remaining_seconds !== undefined && parseInt(data.remaining_seconds) <= 0)) {
+        handleExpired();
+        return;
+    }
+
+    // 动态入口控制：客服与帮助 (V66.5-CONFIG)
+    const contactPanel = document.getElementById('contact-panel');
+    const helpPanelTab = document.getElementById('help-panel-tab');
+
+    // 只有在配置了 support_link 时才开启客服入口
+    if (contactPanel) {
+        if (data.support_link && data.support_link.length > 5) {
+            contactPanel.style.display = 'block';
+            // 绑定跳转逻辑
+            const btn = document.getElementById('contact-us-btn');
+            if (btn) btn.onclick = () => window.safeOpen(data.support_link);
+        } else {
+            contactPanel.style.display = 'none';
+        }
+    }
+
+    // 听从 topup_hint 指令控制帮助面板
+    if (helpPanelTab) {
+        if (parseInt(data.topup_hint) === 1) {
+            helpPanelTab.style.display = 'block';
+        } else {
+            helpPanelTab.style.display = 'none';
+        }
+    }
+
+    // 渲染二维码
+    const qrArea = document.getElementById('qr-display-area');
+    if (qrArea) qrArea.classList.remove('d-none');
+    window.renderQrCode(data.khqr_string, data.bank_name);
+
+    // 启动/更新倒计时
+    startTimer(parseInt(data.remaining_seconds || data.expire_in || 0));
+}
+
+let activeTimerInterval = null;
+function startTimer(sec) {
+    if (activeTimerInterval) clearInterval(activeTimerInterval);
+    if (isNaN(sec) || sec <= 0) {
+        updateTimerVisuals(0);
+        return;
+    }
+    const expireTime = Date.now() + (sec * 1000);
+    const update = () => {
+        const diff = expireTime - Date.now();
+        if (diff <= 0) {
+            clearInterval(activeTimerInterval);
+            updateTimerVisuals(0);
+            window.location.reload();
+            return;
+        }
+        updateTimerVisuals(Math.floor(diff / 1000));
+    };
+    activeTimerInterval = setInterval(update, 1000);
+    update();
+}
+
+/**
+ * 智能数据加载 [V1.2.1-STATIC-SMART]
+ */
+async function loadOrderData() {
+    const configEl = document.getElementById('checkout-config');
+    if (!configEl) return;
+
+    // 1) 优先检查 HTML 是否已经带有数据（后端注入模式）
+    if (configEl.dataset.khqr && configEl.dataset.khqr.trim().length > 10) {
+        renderOrderData(configEl.dataset);
+        startPolling();
+        return;
+    }
+
+    // 2) 静态模式：如果 HTML 没数据，尝试从接口抓取
+    if (!currentOrderNo || !currentToken) {
+        console.warn("Static Mode: Missing order_no or token in URL.");
+        return;
+    }
+
+    try {
+        console.log("Static Mode: Fetching order details from " + API_BASE + "...");
+        const res = await fetch(`${API_BASE}api/get_order_details.php?order_no=${currentOrderNo}&token=${currentToken}`);
+        const json = await res.json();
+        if (json.code === 200 && json.data) {
+            // [适配接口返回字段]
+            const d = json.data;
+            // 补全倒计时计算
+            if (d.expire_at && !d.remaining_seconds) {
+                const exp = new Date(d.expire_at.replace(/-/g, "/")).getTime();
+                const now = d.server_time ? new Date(d.server_time.replace(/-/g, "/")).getTime() : Date.now();
+                d.remaining_seconds = Math.max(0, Math.floor((exp - now) / 1000));
+            }
+            renderOrderData(d);
+            startPolling();
+        } else {
+            console.error("Fetch order failed:", json.msg);
+        }
+    } catch (e) {
+        console.error("Initialization error:", e);
     }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // 1. 先初始化多语言界面
-    updateInterface();
-    // 2. 渲染基础数据（金额、单号等）
-    hydrateFromEmbeddedData();
-
-    const configEl = document.getElementById('checkout-config');
-    if (configEl && configEl.dataset.remainingSeconds > 0) {
-        let sec = parseInt(configEl.dataset.remainingSeconds);
-        const expireTime = Date.now() + (sec * 1000);
-        const updateTimer = () => {
-            const diff = expireTime - Date.now();
-            if (diff <= 0) { window.location.reload(); return; }
-            updateTimerVisuals(Math.floor(diff / 1000));
-        };
-        setInterval(updateTimer, 1000);
-        updateTimer();
-    }
-
-    setInterval(async () => {
-        const cfgEl = document.getElementById('checkout-config');
-        if (!cfgEl) return;
+function startPolling() {
+    const poller = setInterval(async () => {
+        if (!currentOrderNo || !currentToken) return;
         try {
-            const res = await fetch(`api/check_order.php?order_no=${cfgEl.dataset.orderNo}&token=${currentToken}`);
+            const res = await fetch(`${API_BASE}api/check_order.php?order_no=${currentOrderNo}&token=${currentToken}`);
             const json = await res.json();
             if (json.status === 'paid') {
-                document.getElementById('mask-success').style.display = 'flex';
-                if (json.return_url) {
-                    setTimeout(() => window.location.replace(json.return_url), 3000);
-                }
+                clearInterval(poller);
+                handleSuccess(json.return_url);
             }
         } catch (e) { }
     }, 4000);
-    
-    document.querySelector('.checkout-container').style.opacity = '1';
+}
+
+function handleSuccess(retUrl) {
+    let secondsLeft = 3;
+    window.closeSmartPage = function () {
+        if (typeof WeixinJSBridge !== 'undefined') { WeixinJSBridge.call('closeWindow'); }
+        else if (typeof AlipayJSBridge !== 'undefined') { AlipayJSBridge.call('closeWebview'); }
+        else { window.close(); setTimeout(() => { window.location.href = 'about:blank'; }, 300); }
+    };
+    document.querySelector('.checkout-container').innerHTML = `
+        <div class="payment-card shadow-lg text-center p-5 d-flex flex-column justify-content-center align-items-center" style="min-height: 480px; border-radius: 20px;">
+            <i class="fa-solid fa-circle-check text-success display-1 mb-4" style="font-size: 90px; color: #198754; animation: scaleIn 0.4s ease-out;"></i>
+            <h2 class="fw-bold mb-3" style="color: #212529;">${I18N[currentLang].pay_success}</h2>
+            <p class="text-muted small mb-4" style="font-size: 15px;">${I18N[currentLang].auto_close.replace('{{sec}}', `<span id="close-timer-sec" class="fw-bold text-dark">${secondsLeft}</span>`)}</p>
+            ${!retUrl ? `<button class="btn btn-primary px-4 py-3 rounded-pill shadow-sm mt-3" style="width: 100%; max-width: 280px; font-size: 16px;" onclick="window.closeSmartPage()">${I18N[currentLang].close_page}</button>` : ''}
+        </div>
+        <style>@keyframes scaleIn { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }</style>
+    `;
+    const countdown = setInterval(() => {
+        secondsLeft--;
+        const el = document.getElementById('close-timer-sec');
+        if (el) el.innerText = secondsLeft;
+        if (secondsLeft <= 0) {
+            clearInterval(countdown);
+            if (retUrl) window.location.replace(retUrl);
+            else closeSmartPage();
+        }
+    }, 1000);
+}
+
+/**
+ * 处理订单失效 [V66.5-SECURITY]
+ */
+function handleExpired() {
+    isExpired = true; // 锁定失效状态
+    if (activeTimerInterval) clearInterval(activeTimerInterval);
+    updateTimerVisuals(0);
+
+    const qrArea = document.getElementById('qr-display-area');
+    const qrFooter = document.getElementById('qr-footer-bar');
+    const actionGroup = document.querySelector('.qr-action-group');
+
+    if (qrArea) {
+        qrArea.classList.remove('d-none');
+        qrArea.innerHTML = `
+            <div class="expired-mask d-flex flex-column justify-content-center align-items-center" style="min-height: 240px; background: #f8f9fa; border-radius: 12px; border: 2px dashed #dee2e6;">
+                <i class="fa-solid fa-hourglass-end text-muted mb-3" style="font-size: 48px;"></i>
+                <h5 class="fw-bold text-secondary">${(I18N[currentLang] && I18N[currentLang].expired) ? I18N[currentLang].expired : "订单已失效"}</h5>
+                <p class="small text-muted mb-0">${(I18N[currentLang] && I18N[currentLang].expired_hint) ? I18N[currentLang].expired_hint : "请返回商户重新发起支付"}</p>
+            </div>
+        `;
+    }
+    // 失效后彻底隐藏计时器及底栏信息，避免干扰 [V66.5-CLEAN]
+    if (qrFooter) qrFooter.style.display = 'none';
+    if (actionGroup) actionGroup.style.display = 'none';
+    if (paymentInfo) paymentInfo.style.opacity = '0.4'; // 降低辅助信息透明度
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    updateInterface();
+    loadOrderData(); // 启动异步初始化 [V1.2.1-STATIC-SMART]
 });
