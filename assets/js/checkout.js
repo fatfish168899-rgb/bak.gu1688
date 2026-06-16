@@ -165,9 +165,12 @@ window.setLanguage = function (lang) {
 
 window.safeOpen = function (url) {
     if (!url) return;
-    const win = window.open(url, '_blank');
-    if (!win || win.closed || typeof win.closed === 'undefined') {
-        window.location.href = url;
+    const lowUrl = url.toLowerCase().trim();
+    if (lowUrl.startsWith('http://') || lowUrl.startsWith('https://') || (lowUrl.startsWith('/') && !lowUrl.startsWith('//'))) {
+        const win = window.open(url, '_blank');
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+            window.location.href = url;
+        }
     }
 }
 
@@ -595,8 +598,16 @@ function handleSuccess(retUrl) {
         if (el) el.innerText = secondsLeft;
         if (secondsLeft <= 0) {
             clearInterval(countdown);
-            if (retUrl) window.location.replace(retUrl);
-            else closeSmartPage();
+            if (retUrl) {
+                const lowUrl = retUrl.toLowerCase().trim();
+                if (lowUrl.startsWith('http://') || lowUrl.startsWith('https://') || (lowUrl.startsWith('/') && !lowUrl.startsWith('//'))) {
+                    window.location.replace(retUrl);
+                } else {
+                    closeSmartPage();
+                }
+            } else {
+                closeSmartPage();
+            }
         }
     }, 1000);
 }
